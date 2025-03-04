@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { AppLayout } from '../components/AppLayout';
-import { Search, BarChart3, RefreshCw, Heart, MessageSquare, ChevronRight, ExternalLink, UploadCloud } from 'lucide-react';
+import { Search, BarChart3, RefreshCw, Heart, MessageSquare, ChevronRight, ExternalLink, UploadCloud, HelpCircle } from 'lucide-react';
 import { VideoMetricsDisplay } from '@/components/VideoMetricsDisplay';
 import { VideoRecommendations } from '@/components/VideoRecommendations';
 import { HashtagRecommendations } from '@/components/HashtagRecommendations';
@@ -11,6 +11,12 @@ import { fetchTikTokVideo } from '@/services/tiktokVideoService';
 import { analyzeVideo } from '@/services/videoAnalysisService';
 import { formatNumber } from '@/utils/formatters';
 import { toast } from '@/components/ui/use-toast';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger 
+} from '@/components/ui/tooltip';
 
 const AnalysePage = () => {
   const [videoUrl, setVideoUrl] = useState('');
@@ -73,15 +79,41 @@ const AnalysePage = () => {
 
         <section className="glass p-4 rounded-xl space-y-4">
           <h2 className="text-lg font-semibold">Analysez une vidéo TikTok</h2>
-          <p className="text-sm text-tva-text/70">
-            Entrez le lien d'une vidéo TikTok pour l'analyser et obtenir des conseils d'amélioration.
-          </p>
+          
+          <div className="flex items-center gap-1">
+            <p className="text-sm text-tva-text/70">
+              Entrez l'ID numérique d'une vidéo TikTok pour l'analyser.
+            </p>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="inline-flex text-tva-text/50 hover:text-tva-primary">
+                    <HelpCircle size={16} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>Pour obtenir l'ID d'une vidéo TikTok :</p>
+                  <ol className="text-xs mt-1 pl-4 list-decimal">
+                    <li>Ouvrez la vidéo sur TikTok</li>
+                    <li>Dans l'URL (ex: <span className="font-mono text-tva-primary/80">tiktok.com/@user/video/7259090610592697646</span>), l'ID est le dernier nombre (ex: 7259090610592697646)</li>
+                  </ol>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          
+          <div className="bg-tva-accent/10 border border-tva-accent/30 rounded-lg p-3 text-xs">
+            <p className="font-medium text-tva-accent">Note importante</p>
+            <p className="mt-1">L'API fonctionne uniquement avec l'ID numérique de la vidéo. 
+            L'extraction de l'ID depuis l'URL n'est pas toujours fiable avec certains formats d'URL.</p>
+          </div>
+
           <div className="flex space-x-2">
             <input 
               type="text" 
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="https://tiktok.com/@compte/video/123456" 
+              placeholder="7259090610592697646" 
               className="flex-1 bg-tva-surface/60 border border-tva-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-tva-primary text-black" 
             />
             <button 

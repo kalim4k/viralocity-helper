@@ -14,6 +14,11 @@ export async function fetchTikTokVideo(videoIdOrUrl: string): Promise<TikTokProc
       throw new Error("Veuillez fournir une URL ou un ID de vidéo TikTok valide");
     }
     
+    // Si l'entrée n'est pas un ID numérique simple, ajoutez un message de guidance
+    if (!/^\d+$/.test(videoIdOrUrl) && !videoIdOrUrl.includes('tiktok.com')) {
+      console.warn('Format potentiellement invalide. Utilisez de préférence l\'ID numérique de la vidéo.');
+    }
+    
     // Récupération des données brutes depuis l'API
     const result = await fetchVideoData(videoIdOrUrl);
     console.log('Service: Réponse API reçue, conversion en cours...');
