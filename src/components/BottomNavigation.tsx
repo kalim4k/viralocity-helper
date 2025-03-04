@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Sparkles, TrendingUp, Search, Home, Flame } from 'lucide-react';
+import { Sparkles, Search, Home, Flame } from 'lucide-react';
 
 export const BottomNavigation: React.FC = () => {
   const location = useLocation();
@@ -10,7 +9,6 @@ export const BottomNavigation: React.FC = () => {
   const navigationItems = [
     { name: 'Accueil', path: '/', icon: Home },
     { name: 'Générateurs', path: '/generateurs', icon: Sparkles },
-    { name: 'Revenue', path: '/revenue', icon: TrendingUp },
     { name: 'Analyse', path: '/analyse', icon: Search },
     { name: 'Tendance', path: '/tendance', icon: Flame },
   ];
