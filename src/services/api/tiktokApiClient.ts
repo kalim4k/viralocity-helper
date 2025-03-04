@@ -46,9 +46,9 @@ export async function fetchUserData(username: string): Promise<RapidAPIResponse>
       console.log('First video item found with stats:', firstItem.stats);
       
       // If the response has authorStats attribute which contains likes data
-      if ('authorStats' in firstItem && firstItem.authorStats?.heartCount) {
+      if ('authorStats' in firstItem && firstItem.authorStats && 'heartCount' in firstItem.authorStats) {
         // Add the heart count to user_info if it's missing
-        if (result.data.owner.user_info && !result.data.owner.user_info.heartCount) {
+        if (result.data.owner.user_info && !('heartCount' in result.data.owner.user_info)) {
           console.log('Adding heartCount from authorStats to user_info');
           result.data.owner.user_info.heartCount = firstItem.authorStats.heartCount;
         }

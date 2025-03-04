@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { formatUsername, formatError } from '@/utils/formatters';
 import { fetchTikTokProfile } from '@/services/tiktokService';
 
@@ -73,10 +73,7 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
       
       const profile = await fetchTikTokProfile(formattedUsername);
       
-      toast({
-        title: "Compte connecté avec succès",
-        description: `Bienvenue ${profile.displayName}!`,
-      });
+      toast.success(`Compte connecté avec succès : ${profile.displayName}!`);
       
       onSuccess(profile);
       onClose();
@@ -85,11 +82,7 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
       setError(formatError(err));
       
       // Afficher aussi un toast pour une meilleure visibilité de l'erreur
-      toast({
-        title: "Erreur de connexion",
-        description: formatError(err),
-        variant: "destructive"
-      });
+      toast.error(`Erreur de connexion: ${formatError(err)}`);
     } finally {
       setIsLoading(false);
     }
@@ -120,7 +113,7 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
               placeholder="Nom d'utilisateur TikTok (ex: charlidamelio)"
               value={username}
               onChange={handleUsernameChange}
-              className="bg-tva-surface border-tva-border text-tva-text"
+              className="bg-tva-surface border-tva-border text-black"
               disabled={isLoading}
             />
             {error && (
@@ -145,13 +138,13 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Connexion...
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Connexion...</span>
                 </>
               ) : (
                 <>
-                  <TiktokIcon className="mr-2" />
-                  Connecter
+                  <TiktokIcon />
+                  <span>Connecter</span>
                 </>
               )}
             </Button>

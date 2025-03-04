@@ -26,14 +26,14 @@ export async function fetchTikTokProfile(username: string): Promise<TikTokProfil
         
         // If user_info doesn't have heart/likes info, try to get it from authorStats
         if (result.data.owner.user_info && 
-            !result.data.owner.user_info.heart && 
-            !result.data.owner.user_info.heartCount && 
-            !result.data.owner.user_info.total_favorited) {
+            !('heart' in result.data.owner.user_info) && 
+            !('heartCount' in result.data.owner.user_info) && 
+            !('total_favorited' in result.data.owner.user_info)) {
           
           // Add likes/hearts from authorStats
-          if (firstItem.authorStats.heart) {
+          if (firstItem.authorStats && 'heart' in firstItem.authorStats) {
             result.data.owner.user_info.heart = firstItem.authorStats.heart;
-          } else if (firstItem.authorStats.heartCount) {
+          } else if (firstItem.authorStats && 'heartCount' in firstItem.authorStats) {
             result.data.owner.user_info.heartCount = firstItem.authorStats.heartCount;
           }
           
