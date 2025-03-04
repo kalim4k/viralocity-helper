@@ -4,7 +4,7 @@ import { RapidAPIResponse, TikTokApiConfig } from '@/types/tiktok.types';
 // API configuration
 const API_CONFIG: TikTokApiConfig = {
   apiKey: 'bd18f4b949msh6edd4e1d444b6a0p18d393jsnf0169527896e',
-  apiHost: 'tiktok-user.p.rapidapi.com'
+  apiHost: 'tiktok-api6.p.rapidapi.com'
 };
 
 /**
@@ -16,7 +16,7 @@ export async function fetchUserData(username: string): Promise<RapidAPIResponse>
   console.log(`API Client: Fetching data for username: ${username}`);
   
   try {
-    const response = await fetch(`https://tiktok-user.p.rapidapi.com/getuser/${username}`, {
+    const response = await fetch(`https://${API_CONFIG.apiHost}/user/details?username=${username}`, {
       method: 'GET',
       headers: {
         'x-rapidapi-host': API_CONFIG.apiHost,
@@ -29,44 +29,86 @@ export async function fetchUserData(username: string): Promise<RapidAPIResponse>
       console.error(`API responded with status: ${statusCode}`);
       
       if (statusCode === 404) {
-        throw new Error("No user found");
+        throw new Error("Utilisateur introuvable");
       } else if (statusCode === 429) {
-        throw new Error("Rate limit exceeded. Please try again later.");
+        throw new Error("Limite de requêtes dépassée. Veuillez réessayer plus tard.");
       } else {
-        throw new Error(`Error fetching TikTok profile: ${statusCode}`);
+        throw new Error(`Erreur lors de la récupération du profil TikTok: ${statusCode}`);
       }
     }
     
-    const result = await response.json() as RapidAPIResponse;
+    const result = await response.json();
     console.log('Raw API response received:', JSON.stringify(result).substring(0, 300) + '...');
     
-    // Look for author stats in the response
-    if (result.data && result.data.itemList && Array.isArray(result.data.itemList) && result.data.itemList.length > 0) {
-      const firstItem = result.data.itemList[0] as Record<string, unknown>;
-      console.log('First video item found with stats:', firstItem.stats);
-      
-      // If the response has authorStats attribute which contains likes data
-      if ('authorStats' in firstItem && firstItem.authorStats && typeof firstItem.authorStats === 'object') {
-        const authorStats = firstItem.authorStats as Record<string, unknown>;
-        // Add the heart count to user_info if it's missing
-        if (result.data.owner.user_info && !('heartCount' in result.data.owner.user_info)) {
-          console.log('Adding heartCount from authorStats to user_info');
-          if ('heartCount' in authorStats) {
-            result.data.owner.user_info.heartCount = authorStats.heartCount as number;
+    // Vérifier si la réponse contient une structure de profil valide
+    if (!result.username) {
+      throw new Error("Structure de réponse API invalide");
+    }
+    
+    // Construire une réponse compatible avec notre format existant
+    const compatibleResponse: RapidAPIResponse = {
+      status: 0,
+      data: {
+        owner: {
+          user_info: {
+            uid: result.user_id,
+            nickname: result.username,
+            signature: result.description,
+            avatar_thumb: {
+              url_list: [result.profile_image]
+            },
+            follower_count: result.followers,
+            total_favorited: result.total_heart,
+            unique_id: result.username,
           }
-        }
+        },
+        itemList: []
+      }
+    };
+    
+    return compatibleResponse;
+  } catch (error) {
+    console.error('Error in fetchUserData:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches video data from RapidAPI TikTok endpoint
+ * @param videoId TikTok video ID
+ * @returns Promise with the raw API response
+ */
+export async function fetchVideoData(videoId: string): Promise<any> {
+  console.log(`API Client: Fetching data for video ID: ${videoId}`);
+  
+  try {
+    const response = await fetch(`https://${API_CONFIG.apiHost}/video/details?video_id=${videoId}`, {
+      method: 'GET',
+      headers: {
+        'x-rapidapi-host': API_CONFIG.apiHost,
+        'x-rapidapi-key': API_CONFIG.apiKey
+      }
+    });
+    
+    if (!response.ok) {
+      const statusCode = response.status;
+      console.error(`API responded with status: ${statusCode}`);
+      
+      if (statusCode === 404) {
+        throw new Error("Vidéo introuvable");
+      } else if (statusCode === 429) {
+        throw new Error("Limite de requêtes dépassée. Veuillez réessayer plus tard.");
+      } else {
+        throw new Error(`Erreur lors de la récupération de la vidéo TikTok: ${statusCode}`);
       }
     }
     
-    // Validate the API response structure
-    if (!result.data || !result.data.owner || !result.data.owner.user_info) {
-      console.error('Invalid API response structure:', result);
-      throw new Error('API returned invalid data structure');
-    }
+    const result = await response.json();
+    console.log('Raw API response received:', JSON.stringify(result).substring(0, 300) + '...');
     
     return result;
   } catch (error) {
-    console.error('Error in fetchUserData:', error);
+    console.error('Error in fetchVideoData:', error);
     throw error;
   }
 }

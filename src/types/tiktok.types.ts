@@ -54,3 +54,21 @@ export interface TikTokApiConfig {
   apiKey: string;
   apiHost: string;
 }
+
+/**
+ * Recommendation for a TikTok profile
+ */
+export interface ProfileRecommendation {
+  title: string;
+  description: string;
+}
+
+/**
+ * Analysis result for a TikTok profile
+ */
+export interface TikTokProfileAnalysis {
+  strengths: string[];
+  improvements: string[];
+  recommendations: ProfileRecommendation[];
+  optimizedBio: string;
+}
