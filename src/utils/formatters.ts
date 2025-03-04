@@ -29,12 +29,24 @@ export function formatUsername(username: string): string {
  * @returns A user-friendly error message
  */
 export function formatError(error: unknown): string {
+  console.log('Formatting error:', error);
+  
   if (error instanceof Error) {
     // Check for specific error messages
     if (error.message.includes('No user found')) {
-      return "Aucun utilisateur trouvé avec ce nom d'utilisateur";
+      return "Aucun utilisateur trouvé avec ce nom d'utilisateur. Vérifiez l'orthographe et réessayez.";
     }
+    
+    if (error.message.includes('Error fetching TikTok profile')) {
+      return "Impossible de se connecter à TikTok en ce moment. Veuillez réessayer plus tard.";
+    }
+    
     return error.message;
   }
+  
+  if (typeof error === 'string') {
+    return error;
+  }
+  
   return "Une erreur s'est produite lors de la connexion à TikTok";
 }

@@ -67,6 +67,7 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
     setError(null);
 
     try {
+      console.log(`Submitting username: ${username}`);
       const formattedUsername = formatUsername(username);
       const profile = await fetchTikTokProfile(formattedUsername);
 
@@ -78,11 +79,17 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
       onSuccess(profile);
       onClose();
     } catch (err) {
-      console.error(err);
+      console.error("Error in TikTokConnectModal:", err);
       setError(formatError(err));
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Reset error when user types
+    if (error) setError(null);
+    setUsername(e.target.value);
   };
 
   return (
@@ -101,16 +108,22 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Input
-              placeholder="Nom d'utilisateur TikTok"
+              placeholder="Nom d'utilisateur TikTok (ex: username)"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={handleUsernameChange}
               className="bg-tva-surface border-tva-border text-tva-text"
+              disabled={isLoading}
             />
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error && (
+              <p className="text-red-500 text-sm flex items-start gap-1">
+                <span className="text-red-500">⚠️</span>
+                <span>{error}</span>
+              </p>
+            )}
           </div>
           
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
               Annuler
             </Button>
             <Button 
