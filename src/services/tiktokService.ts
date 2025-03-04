@@ -18,6 +18,30 @@ export async function fetchTikTokProfile(username: string): Promise<TikTokProfil
     const result = await fetchUserData(cleanUsername);
     console.log('Service: API response received, mapping to profile...');
     
+    // Extract author stats if available
+    if (result.data.itemList && result.data.itemList.length > 0) {
+      const firstItem = result.data.itemList[0];
+      if ('author' in firstItem && 'authorStats' in firstItem) {
+        console.log('Found authorStats in first video:', firstItem.authorStats);
+        
+        // If user_info doesn't have heart/likes info, try to get it from authorStats
+        if (result.data.owner.user_info && 
+            !result.data.owner.user_info.heart && 
+            !result.data.owner.user_info.heartCount && 
+            !result.data.owner.user_info.total_favorited) {
+          
+          // Add likes/hearts from authorStats
+          if (firstItem.authorStats.heart) {
+            result.data.owner.user_info.heart = firstItem.authorStats.heart;
+          } else if (firstItem.authorStats.heartCount) {
+            result.data.owner.user_info.heartCount = firstItem.authorStats.heartCount;
+          }
+          
+          console.log('Added heart count to user_info from authorStats');
+        }
+      }
+    }
+    
     // Map the response to our application model
     const profile = mapToTikTokProfile(result, cleanUsername);
     console.log('Service: Profile successfully mapped');

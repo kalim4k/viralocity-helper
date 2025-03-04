@@ -25,10 +25,25 @@ export interface RapidAPIResponse {
         unique_id: string;
       }
     };
+    itemList?: Array<{
+      id: string;
+      desc: string;
+      stats: {
+        playCount: number;
+        diggCount: number;
+        commentCount: number;
+        shareCount: number;
+      };
+      video: {
+        cover: string;
+        dynamicCover: string;
+        originCover: string;
+        duration: number;
+      };
+    }>;
     cursor?: string;
     extra?: any;
     hasMore?: boolean;
-    itemList?: any[];
   }
 }
 

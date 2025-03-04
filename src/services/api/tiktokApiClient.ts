@@ -40,6 +40,21 @@ export async function fetchUserData(username: string): Promise<RapidAPIResponse>
     const result = await response.json() as RapidAPIResponse;
     console.log('Raw API response received:', JSON.stringify(result).substring(0, 300) + '...');
     
+    // Look for author stats in the response
+    if (result.data && result.data.itemList && result.data.itemList.length > 0) {
+      const firstItem = result.data.itemList[0];
+      console.log('First video item found with stats:', firstItem.stats);
+      
+      // If the response has authorStats attribute which contains likes data
+      if ('authorStats' in firstItem && firstItem.authorStats?.heartCount) {
+        // Add the heart count to user_info if it's missing
+        if (result.data.owner.user_info && !result.data.owner.user_info.heartCount) {
+          console.log('Adding heartCount from authorStats to user_info');
+          result.data.owner.user_info.heartCount = firstItem.authorStats.heartCount;
+        }
+      }
+    }
+    
     // Validate the API response structure
     if (!result.data || !result.data.owner || !result.data.owner.user_info) {
       console.error('Invalid API response structure:', result);
