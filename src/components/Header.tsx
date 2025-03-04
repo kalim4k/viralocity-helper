@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Download } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const Header: React.FC = () => {
   return (
@@ -14,6 +15,11 @@ export const Header: React.FC = () => {
         </div>
         
         <div className="flex items-center space-x-3">
+          <Link to="/telechargement" className="relative p-2 rounded-full hover:bg-tva-surface transition-colors">
+            <Download size={20} className="text-tva-text" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-tva-accent rounded-full"></span>
+          </Link>
+          
           <button className="relative p-2 rounded-full hover:bg-tva-surface transition-colors">
             <Bell size={20} className="text-tva-text" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-tva-accent rounded-full"></span>

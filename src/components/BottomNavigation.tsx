@@ -1,20 +1,26 @@
 
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Sparkles, TrendingUp, Search, Download } from 'lucide-react';
+import { Sparkles, TrendingUp, Search, Home, Flame } from 'lucide-react';
 
 export const BottomNavigation: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
   const navigationItems = [
+    { name: 'Accueil', path: '/', icon: Home },
     { name: 'Générateurs', path: '/generateurs', icon: Sparkles },
     { name: 'Revenue', path: '/revenue', icon: TrendingUp },
     { name: 'Analyse', path: '/analyse', icon: Search },
-    { name: 'Téléchargement', path: '/telechargement', icon: Download },
+    { name: 'Tendance', path: '/tendance', icon: Flame },
   ];
   
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    if (path === '/' && location.pathname === '/') {
+      return true;
+    }
+    return location.pathname === path;
+  };
   
   return (
     <div className="fixed bottom-0 left-0 right-0 z-20">

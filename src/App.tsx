@@ -9,6 +9,7 @@ import GenerateursPage from "./pages/Generateurs";
 import RevenuePage from "./pages/Revenue";
 import AnalysePage from "./pages/Analyse";
 import TelechargementPage from "./pages/Telechargement";
+import TendancePage from "./pages/Tendance";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/revenue" element={<RevenuePage />} />
           <Route path="/analyse" element={<AnalysePage />} />
           <Route path="/telechargement" element={<TelechargementPage />} />
+          <Route path="/tendance" element={<TendancePage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
