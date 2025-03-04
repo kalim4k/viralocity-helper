@@ -7,6 +7,11 @@ import { TikTokVideoResponse, TikTokProcessedVideo } from '@/types/tiktokVideo.t
  * @returns Objet vidéo TikTok traité
  */
 export function mapToTikTokVideo(response: TikTokVideoResponse): TikTokProcessedVideo {
+  // Si la réponse contient une chaîne au lieu d'un objet, c'est une erreur
+  if (typeof response.data === 'string') {
+    throw new Error(`Erreur API: ${response.data}`);
+  }
+
   const { owner, item } = response.data;
   
   // Parse collectCount which can be string or number
@@ -17,14 +22,25 @@ export function mapToTikTokVideo(response: TikTokVideoResponse): TikTokProcessed
     collectCount = item.stats.collectCount || 0;
   }
   
+  // Ensure we have a valid description (can be undefined in some responses)
+  const description = item.desc || 
+                     (item.contents && item.contents[0] ? item.contents[0].desc : '') ||
+                     '';
+  
+  // Ensure we have valid cover image URLs (can be undefined in some responses)
+  const coverImage = item.video.cover || 
+                    item.video.dynamicCover || 
+                    item.video.originCover || 
+                    '';
+  
   const processedVideo: TikTokProcessedVideo = {
     id: item.id,
     url: `https://www.tiktok.com/@${owner.uniqueId}/video/${item.id}`,
     username: owner.uniqueId,
     nickname: owner.nickname,
     userAvatar: owner.avatarThumb,
-    description: item.desc || (item.contents && item.contents[0] ? item.contents[0].desc : ''),
-    cover: item.video.cover,
+    description: description,
+    cover: coverImage,
     playUrl: item.video.playAddr,
     duration: item.video.duration,
     stats: {
@@ -35,8 +51,8 @@ export function mapToTikTokVideo(response: TikTokVideoResponse): TikTokProcessed
       saves: collectCount
     },
     musicInfo: {
-      title: item.music.title,
-      author: item.music.authorName,
+      title: item.music.title || 'Son original',
+      author: item.music.authorName || owner.nickname,
       isOriginal: item.music.original
     },
     createdAt: item.createTime

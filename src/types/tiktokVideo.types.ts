@@ -8,7 +8,7 @@ export interface TikTokVideoResponse {
   data: {
     owner: TikTokVideoOwner;
     item: TikTokVideoItem;
-  };
+  } | string; // Pour gérer le cas "No match found"
 }
 
 export interface TikTokVideoOwner {

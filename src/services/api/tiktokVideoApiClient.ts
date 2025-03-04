@@ -71,8 +71,13 @@ export async function fetchVideoData(videoIdOrUrl: string): Promise<TikTokVideoR
       }
     }
     
-    const result = await response.json() as TikTokVideoResponse;
+    const result = await response.json();
     console.log('Réponse API brute reçue:', JSON.stringify(result).substring(0, 300) + '...');
+    
+    // Vérifie si la réponse est "No match found"
+    if (typeof result.data === 'string' && result.data.includes('No match found')) {
+      throw new Error("Aucune vidéo trouvée avec cet identifiant. Vérifiez l'URL ou essayez avec un autre ID.");
+    }
     
     // Validation de la structure de la réponse API
     if (!result.data || !result.data.owner || !result.data.item) {

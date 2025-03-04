@@ -6,6 +6,16 @@ interface HashtagRecommendationsProps {
 }
 
 export const HashtagRecommendations: React.FC<HashtagRecommendationsProps> = ({ hashtags }) => {
+  // Si aucun hashtag n'est fourni ou si la liste est vide, afficher un message
+  if (!hashtags || hashtags.length === 0) {
+    return (
+      <div className="glass p-4 rounded-xl">
+        <h3 className="font-semibold mb-3">Hashtags recommandés</h3>
+        <p className="text-sm text-tva-text/70">Aucun hashtag recommandé disponible.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="glass p-4 rounded-xl">
       <h3 className="font-semibold mb-3">Hashtags recommandés</h3>

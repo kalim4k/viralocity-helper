@@ -10,9 +10,18 @@ import { mapToTikTokVideo } from './mappers/tiktokVideoMapper';
  */
 export async function fetchTikTokVideo(videoIdOrUrl: string): Promise<TikTokProcessedVideo> {
   try {
+    if (!videoIdOrUrl) {
+      throw new Error("Veuillez fournir une URL ou un ID de vidéo TikTok valide");
+    }
+    
     // Récupération des données brutes depuis l'API
     const result = await fetchVideoData(videoIdOrUrl);
     console.log('Service: Réponse API reçue, conversion en cours...');
+    
+    // Si la réponse contient une chaîne au lieu d'un objet data, c'est une erreur
+    if (typeof result.data === 'string') {
+      throw new Error(`L'API a retourné une erreur: ${result.data}`);
+    }
     
     // Conversion des données en notre modèle d'application
     const video = mapToTikTokVideo(result);
