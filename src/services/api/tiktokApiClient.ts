@@ -41,16 +41,19 @@ export async function fetchUserData(username: string): Promise<RapidAPIResponse>
     console.log('Raw API response received:', JSON.stringify(result).substring(0, 300) + '...');
     
     // Look for author stats in the response
-    if (result.data && result.data.itemList && result.data.itemList.length > 0) {
-      const firstItem = result.data.itemList[0];
+    if (result.data && result.data.itemList && Array.isArray(result.data.itemList) && result.data.itemList.length > 0) {
+      const firstItem = result.data.itemList[0] as Record<string, unknown>;
       console.log('First video item found with stats:', firstItem.stats);
       
       // If the response has authorStats attribute which contains likes data
-      if ('authorStats' in firstItem && firstItem.authorStats && 'heartCount' in firstItem.authorStats) {
+      if ('authorStats' in firstItem && firstItem.authorStats && typeof firstItem.authorStats === 'object') {
+        const authorStats = firstItem.authorStats as Record<string, unknown>;
         // Add the heart count to user_info if it's missing
         if (result.data.owner.user_info && !('heartCount' in result.data.owner.user_info)) {
           console.log('Adding heartCount from authorStats to user_info');
-          result.data.owner.user_info.heartCount = firstItem.authorStats.heartCount as number;
+          if ('heartCount' in authorStats) {
+            result.data.owner.user_info.heartCount = authorStats.heartCount as number;
+          }
         }
       }
     }

@@ -19,8 +19,8 @@ export async function fetchTikTokProfile(username: string): Promise<TikTokProfil
     console.log('Service: API response received, mapping to profile...');
     
     // Extract author stats if available
-    if (result.data.itemList && result.data.itemList.length > 0) {
-      const firstItem = result.data.itemList[0];
+    if (result.data.itemList && Array.isArray(result.data.itemList) && result.data.itemList.length > 0) {
+      const firstItem = result.data.itemList[0] as Record<string, unknown>;
       if ('author' in firstItem && 'authorStats' in firstItem) {
         console.log('Found authorStats in first video:', firstItem.authorStats);
         
@@ -31,10 +31,13 @@ export async function fetchTikTokProfile(username: string): Promise<TikTokProfil
             !('total_favorited' in result.data.owner.user_info)) {
           
           // Add likes/hearts from authorStats
-          if (firstItem.authorStats && 'heart' in firstItem.authorStats) {
-            result.data.owner.user_info.heart = firstItem.authorStats.heart as number;
-          } else if (firstItem.authorStats && 'heartCount' in firstItem.authorStats) {
-            result.data.owner.user_info.heartCount = firstItem.authorStats.heartCount as number;
+          if (firstItem.authorStats && typeof firstItem.authorStats === 'object') {
+            const authorStats = firstItem.authorStats as Record<string, unknown>;
+            if ('heart' in authorStats) {
+              result.data.owner.user_info.heart = authorStats.heart as number;
+            } else if ('heartCount' in authorStats) {
+              result.data.owner.user_info.heartCount = authorStats.heartCount as number;
+            }
           }
           
           console.log('Added heart count to user_info from authorStats');

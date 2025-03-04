@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AppLayout } from '../components/AppLayout';
 import { Search, ExternalLink, UploadCloud, HelpCircle, Download } from 'lucide-react';
@@ -16,8 +15,8 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-  Badge
 } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 
 const AnalysePage = () => {
   const [videoUrl, setVideoUrl] = useState('');
