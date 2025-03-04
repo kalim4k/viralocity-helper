@@ -48,7 +48,7 @@ export const IdeaGenerationStep: React.FC<IdeaGenerationStepProps> = ({ onIdeaSe
             placeholder="Ex: cuisine, fitness, mode, technologie..."
             value={niche}
             onChange={(e) => setNiche(e.target.value)}
-            className="flex-1 bg-tva-background/60 border border-tva-border text-tva-text"
+            className="flex-1 bg-tva-background/60 border border-tva-border text-black"
           />
           <Button
             onClick={handleGenerateIdeas}
