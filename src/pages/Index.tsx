@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
-import { Flame, TiktokIcon, User, UserCheck } from 'lucide-react';
+import { Flame, User, UserCheck } from 'lucide-react';
 
 // Create a TikTok icon component since it's not directly available in lucide-react
 const TiktokIcon = () => (
