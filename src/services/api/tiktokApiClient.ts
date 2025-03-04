@@ -50,7 +50,7 @@ export async function fetchUserData(username: string): Promise<RapidAPIResponse>
         // Add the heart count to user_info if it's missing
         if (result.data.owner.user_info && !('heartCount' in result.data.owner.user_info)) {
           console.log('Adding heartCount from authorStats to user_info');
-          result.data.owner.user_info.heartCount = firstItem.authorStats.heartCount;
+          result.data.owner.user_info.heartCount = firstItem.authorStats.heartCount as number;
         }
       }
     }

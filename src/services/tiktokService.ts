@@ -32,9 +32,9 @@ export async function fetchTikTokProfile(username: string): Promise<TikTokProfil
           
           // Add likes/hearts from authorStats
           if (firstItem.authorStats && 'heart' in firstItem.authorStats) {
-            result.data.owner.user_info.heart = firstItem.authorStats.heart;
+            result.data.owner.user_info.heart = firstItem.authorStats.heart as number;
           } else if (firstItem.authorStats && 'heartCount' in firstItem.authorStats) {
-            result.data.owner.user_info.heartCount = firstItem.authorStats.heartCount;
+            result.data.owner.user_info.heartCount = firstItem.authorStats.heartCount as number;
           }
           
           console.log('Added heart count to user_info from authorStats');

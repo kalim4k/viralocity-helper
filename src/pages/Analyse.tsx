@@ -1,23 +1,55 @@
 
 import React, { useState } from 'react';
 import { AppLayout } from '../components/AppLayout';
-import { Search, BarChart3, RefreshCw, Heart, MessageSquare, ChevronRight, ExternalLink } from 'lucide-react';
+import { Search, BarChart3, RefreshCw, Heart, MessageSquare, ChevronRight, ExternalLink, UploadCloud } from 'lucide-react';
+import { VideoMetricsDisplay } from '@/components/VideoMetricsDisplay';
+import { VideoRecommendations } from '@/components/VideoRecommendations';
+import { HashtagRecommendations } from '@/components/HashtagRecommendations';
+import { StrengthsWeaknesses } from '@/components/StrengthsWeaknesses';
+import { TikTokProcessedVideo, VideoAnalysisResult } from '@/types/tiktokVideo.types';
+import { fetchTikTokVideo } from '@/services/tiktokVideoService';
+import { analyzeVideo } from '@/services/videoAnalysisService';
+import { formatNumber } from '@/utils/formatters';
+import { toast } from '@/components/ui/use-toast';
 
 const AnalysePage = () => {
   const [videoUrl, setVideoUrl] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [showResults, setShowResults] = useState(false);
+  const [video, setVideo] = useState<TikTokProcessedVideo | null>(null);
+  const [analysis, setAnalysis] = useState<VideoAnalysisResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (!videoUrl) return;
     
     setIsAnalyzing(true);
+    setError(null);
     
-    // Simuler une analyse
-    setTimeout(() => {
+    try {
+      // Récupération des données de la vidéo
+      const videoData = await fetchTikTokVideo(videoUrl);
+      setVideo(videoData);
+      
+      // Analyse de la vidéo avec Gemini
+      const analysisResult = await analyzeVideo(videoData);
+      setAnalysis(analysisResult);
+      
+      toast({
+        title: "Analyse terminée",
+        description: "L'analyse de votre vidéo TikTok est prête !",
+      });
+    } catch (err) {
+      console.error('Erreur lors de l\'analyse:', err);
+      setError(err instanceof Error ? err.message : 'Une erreur s\'est produite lors de l\'analyse');
+      
+      toast({
+        variant: "destructive",
+        title: "Erreur d'analyse",
+        description: err instanceof Error ? err.message : 'Une erreur s\'est produite lors de l\'analyse',
+      });
+    } finally {
       setIsAnalyzing(false);
-      setShowResults(true);
-    }, 2000);
+    }
   };
 
   return (
@@ -50,7 +82,7 @@ const AnalysePage = () => {
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
               placeholder="https://tiktok.com/@compte/video/123456" 
-              className="flex-1 bg-tva-surface/60 border border-tva-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-tva-primary" 
+              className="flex-1 bg-tva-surface/60 border border-tva-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-tva-primary text-black" 
             />
             <button 
               onClick={handleAnalyze}
@@ -71,130 +103,101 @@ const AnalysePage = () => {
           </div>
         )}
 
-        {showResults && (
+        {error && (
+          <div className="glass p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
+
+        {video && analysis && (
           <div className="space-y-6 animate-slide-up">
             <section className="glass p-4 rounded-xl">
               <div className="relative rounded-lg overflow-hidden mb-4">
                 <div className="aspect-[9/16] bg-tva-surface flex items-center justify-center">
-                  <ExternalLink size={24} className="text-tva-text/40" />
+                  {video.cover ? (
+                    <img 
+                      src={video.cover} 
+                      alt={video.description || "Couverture de la vidéo TikTok"} 
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://placehold.co/480x852/3730a3/ffffff?text=Aperçu+non+disponible';
+                      }}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-tva-text/40">
+                      <UploadCloud size={32} />
+                      <p className="text-xs mt-2">Aperçu non disponible</p>
+                    </div>
+                  )}
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
-                  <h3 className="text-white font-medium text-sm">Comment j'ai gagné 10K abonnés avec cette astuce</h3>
+                  <h3 className="text-white font-medium text-sm">{video.description || "Sans description"}</h3>
+                </div>
+                <div className="absolute top-2 right-2">
+                  <a 
+                    href={video.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="bg-black/50 hover:bg-black/70 p-1.5 rounded-full transition-all"
+                  >
+                    <ExternalLink size={14} className="text-white" />
+                  </a>
                 </div>
               </div>
 
               <div className="grid grid-cols-4 gap-2 mb-4">
                 <div className="bg-tva-surface rounded-lg p-2 text-center">
                   <p className="text-xs text-tva-text/70 mb-1">Vues</p>
-                  <p className="font-semibold">183.5K</p>
+                  <p className="font-semibold">{formatNumber(video.stats.views)}</p>
                 </div>
                 <div className="bg-tva-surface rounded-lg p-2 text-center">
                   <p className="text-xs text-tva-text/70 mb-1">Likes</p>
-                  <p className="font-semibold">24.2K</p>
+                  <p className="font-semibold">{formatNumber(video.stats.likes)}</p>
                 </div>
                 <div className="bg-tva-surface rounded-lg p-2 text-center">
                   <p className="text-xs text-tva-text/70 mb-1">Commentaires</p>
-                  <p className="font-semibold">432</p>
+                  <p className="font-semibold">{formatNumber(video.stats.comments)}</p>
                 </div>
                 <div className="bg-tva-surface rounded-lg p-2 text-center">
                   <p className="text-xs text-tva-text/70 mb-1">Partages</p>
-                  <p className="font-semibold">1.8K</p>
+                  <p className="font-semibold">{formatNumber(video.stats.shares)}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <img 
+                  src={video.userAvatar} 
+                  alt={video.nickname} 
+                  className="w-8 h-8 rounded-full"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://placehold.co/100/3730a3/ffffff?text=Avatar';
+                  }}
+                />
+                <div>
+                  <p className="font-medium text-sm">{video.nickname}</p>
+                  <p className="text-xs text-tva-text/70">@{video.username}</p>
                 </div>
               </div>
             </section>
             
             <section className="glass p-4 rounded-xl">
               <h3 className="text-lg font-semibold mb-4">Performance de la vidéo</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm">Engagement</span>
-                    <span className="text-sm font-medium text-tva-secondary">Excellent</span>
-                  </div>
-                  <div className="w-full bg-tva-border/30 h-2 rounded-full">
-                    <div className="bg-gradient-to-r from-tva-primary to-tva-secondary h-2 rounded-full w-[85%]"></div>
-                  </div>
-                </div>
-                
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm">Taux de complétion</span>
-                    <span className="text-sm font-medium text-yellow-400">Moyen</span>
-                  </div>
-                  <div className="w-full bg-tva-border/30 h-2 rounded-full">
-                    <div className="bg-gradient-to-r from-tva-primary to-yellow-400 h-2 rounded-full w-[45%]"></div>
-                  </div>
-                </div>
-                
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm">Hook (5s)</span>
-                    <span className="text-sm font-medium text-tva-accent">À améliorer</span>
-                  </div>
-                  <div className="w-full bg-tva-border/30 h-2 rounded-full">
-                    <div className="bg-gradient-to-r from-tva-accent to-red-400 h-2 rounded-full w-[30%]"></div>
-                  </div>
-                </div>
-                
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm">Score de viralité</span>
-                    <span className="text-sm font-medium text-tva-primary">72/100</span>
-                  </div>
-                  <div className="w-full bg-tva-border/30 h-2 rounded-full">
-                    <div className="bg-gradient-to-r from-tva-primary to-tva-secondary h-2 rounded-full w-[72%]"></div>
-                  </div>
-                </div>
-              </div>
+              <VideoMetricsDisplay metrics={analysis.metrics} />
             </section>
+
+            <StrengthsWeaknesses 
+              strengths={analysis.strengths}
+              weaknesses={analysis.weaknesses}
+            />
             
             <section className="glass p-4 rounded-xl">
               <h3 className="text-lg font-semibold mb-4">Recommandations</h3>
-              
-              <div className="space-y-3">
-                <div className="bg-tva-surface p-3 rounded-lg">
-                  <div className="flex items-start">
-                    <div className="bg-tva-accent/20 p-1.5 rounded-lg mr-3">
-                      <RefreshCw size={16} className="text-tva-accent" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-sm mb-1">Améliorer votre hook</h4>
-                      <p className="text-xs text-tva-text/70">Les 5 premières secondes sont cruciales. Commencez par une question provocante ou un fait surprenant pour capter l'attention immédiatement.</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-tva-surface p-3 rounded-lg">
-                  <div className="flex items-start">
-                    <div className="bg-yellow-400/20 p-1.5 rounded-lg mr-3">
-                      <Heart size={16} className="text-yellow-400" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-sm mb-1">Stimuler l'engagement</h4>
-                      <p className="text-xs text-tva-text/70">Ajoutez un appel à l'action clair à la fin de votre vidéo pour inciter aux commentaires et partages.</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-tva-surface p-3 rounded-lg">
-                  <div className="flex items-start">
-                    <div className="bg-tva-secondary/20 p-1.5 rounded-lg mr-3">
-                      <MessageSquare size={16} className="text-tva-secondary" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-sm mb-1">Optimiser vos hashtags</h4>
-                      <p className="text-xs text-tva-text/70">Utilisez des hashtags plus spécifiques à votre niche pour atteindre une audience plus ciblée et engagée.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <button className="w-full mt-4 py-2.5 text-sm font-medium text-center text-tva-primary flex items-center justify-center">
-                <span>Voir l'analyse complète</span>
-                <ChevronRight size={16} className="ml-1" />
-              </button>
+              <VideoRecommendations recommendations={analysis.recommendations} />
             </section>
+
+            <HashtagRecommendations hashtags={analysis.hashtags} />
           </div>
         )}
       </div>
