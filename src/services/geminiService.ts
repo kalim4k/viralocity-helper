@@ -33,113 +33,136 @@ export interface VideoMetadata {
 export const geminiService = {
   async generateVideoIdeas(niche: string, count: number = 5): Promise<VideoIdea[]> {
     try {
-      const prompt = `Generate ${count} TikTok video ideas for the niche: "${niche}". 
-      For each idea, provide: 
-      1. A catchy title
-      2. A brief description (1-2 sentences)
-      3. Content type (e.g., Tutorial, Story, Review, Challenge)
-      4. Viral potential score from 1-100
-      5. Target audience
+      const prompt = `Génère ${count} idées de vidéos TikTok pour la niche: "${niche}". 
+      Pour chaque idée, fournis: 
+      1. Un titre accrocheur
+      2. Une brève description (1-2 phrases)
+      3. Type de contenu (ex: Tutoriel, Histoire, Avis, Challenge)
+      4. Score de potentiel viral de 1 à 100
+      5. Public cible
       
-      Format the response as a valid JSON array of objects with properties: title, description, type, viralPotential, audience.`;
+      Réponds uniquement en français.
+      
+      Formate la réponse en JSON valide avec les propriétés: title, description, type, viralPotential, audience.`;
 
       const result = await model.generateContent(prompt);
       const text = result.response.text();
       
       // Extract the JSON from the response
       const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) throw new Error("Failed to parse ideas from AI response");
+      if (!jsonMatch) throw new Error("Impossible de parser les idées générées");
       
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error("Error generating video ideas:", error);
+      console.error("Erreur de génération d'idées:", error);
       throw error;
     }
   },
 
   async generateVideoScript(idea: VideoIdea, scriptType: "voiceover" | "scenario"): Promise<VideoScript> {
     try {
-      const prompt = `Create a ${scriptType === "voiceover" ? "voiceover script" : "scenario script"} for a TikTok video with the following details:
+      let scriptPrompt = "";
       
-      Title: ${idea.title}
-      Description: ${idea.description}
-      Type: ${idea.type}
-      Target Audience: ${idea.audience}
-      
-      ${scriptType === "voiceover" ? 
-        "The script should be written as a voiceover narration that would work well with visuals and be engaging for TikTok." : 
-        "The script should include character actions, dialogue, and scene directions in a scenario format suitable for TikTok."}
-      
-      Also include an estimated duration for the video.
-      
-      Format the response as a valid JSON object with properties: script (the full script text), durationEstimate (e.g., "30-45 seconds").`;
+      if (scriptType === "voiceover") {
+        scriptPrompt = `Crée un script de voix off pour une vidéo TikTok avec les détails suivants:
+        
+        Titre: ${idea.title}
+        Description: ${idea.description}
+        Type: ${idea.type}
+        Public cible: ${idea.audience}
+        
+        Le script doit être écrit sous forme de narration vocale qui accompagnerait bien des visuels et serait engageant pour TikTok.
+        
+        Inclus également une durée estimée pour la vidéo.
+        Réponds uniquement en français.
+        
+        Formate la réponse en JSON valide avec les propriétés: script (le texte complet du script), durationEstimate (ex: "30-45 secondes").`;
+      } else {
+        scriptPrompt = `Crée un script de scénario pour une vidéo TikTok avec les détails suivants:
+        
+        Titre: ${idea.title}
+        Description: ${idea.description}
+        Type: ${idea.type}
+        Public cible: ${idea.audience}
+        
+        Le script doit inclure les actions des personnages, les dialogues et les indications de scène dans un format de scénario adapté à TikTok.
+        
+        Inclus également une durée estimée pour la vidéo.
+        Réponds uniquement en français.
+        
+        Formate la réponse en JSON valide avec les propriétés: script (le texte complet du script), durationEstimate (ex: "30-45 secondes").`;
+      }
 
-      const result = await model.generateContent(prompt);
+      const result = await model.generateContent(scriptPrompt);
       const text = result.response.text();
       
       // Extract the JSON from the response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("Failed to parse script from AI response");
+      if (!jsonMatch) throw new Error("Impossible de parser le script généré");
       
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error("Error generating video script:", error);
+      console.error("Erreur de génération de script:", error);
       throw error;
     }
   },
 
   async analyzeScript(script: string): Promise<VideoAnalysis> {
     try {
-      const prompt = `Analyze this TikTok video script and provide strategic advice:
+      const prompt = `Analyse ce script de vidéo TikTok et fournis des conseils stratégiques:
       
       Script: "${script}"
       
-      Please provide:
-      1. A strong hook suggestion for the first 3 seconds
-      2. 2-3 specific editing tips or transition suggestions
-      3. An effective call-to-action for the end
+      Fournis:
+      1. Une suggestion de hook puissant pour les 3 premières secondes
+      2. 2-3 conseils spécifiques de montage ou suggestions de transitions
+      3. Un appel à l'action efficace pour la fin
       
-      Format the response as a valid JSON object with properties: hookSuggestion, editingTips, callToAction.`;
+      Réponds uniquement en français.
+      
+      Formate la réponse en JSON valide avec les propriétés: hookSuggestion, editingTips, callToAction.`;
 
       const result = await model.generateContent(prompt);
       const text = result.response.text();
       
       // Extract the JSON from the response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("Failed to parse analysis from AI response");
+      if (!jsonMatch) throw new Error("Impossible de parser l'analyse générée");
       
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error("Error analyzing script:", error);
+      console.error("Erreur d'analyse de script:", error);
       throw error;
     }
   },
 
   async generateMetadata(idea: VideoIdea, script: string): Promise<VideoMetadata> {
     try {
-      const prompt = `Create SEO-optimized metadata for a TikTok video with the following details:
+      const prompt = `Crée des métadonnées optimisées pour le référencement d'une vidéo TikTok avec les détails suivants:
       
-      Video Idea: ${idea.title}
+      Idée de vidéo: ${idea.title}
       Description: ${idea.description}
       Script: "${script.substring(0, 500)}${script.length > 500 ? '...' : ''}"
       
-      Please provide:
-      1. An attention-grabbing title (max 100 characters)
-      2. An engaging description (150-200 characters) that includes relevant keywords
-      3. 5-7 trending hashtags that would help this content get discovered
+      Fournis:
+      1. Un titre accrocheur (max 100 caractères)
+      2. Une description engageante (150-200 caractères) qui inclut des mots-clés pertinents
+      3. 5-7 hashtags tendance qui aideraient ce contenu à être découvert
       
-      Format the response as a valid JSON object with properties: title, description, hashtags (as an array of strings).`;
+      Réponds uniquement en français.
+      
+      Formate la réponse en JSON valide avec les propriétés: title, description, hashtags (sous forme de tableau de chaînes).`;
 
       const result = await model.generateContent(prompt);
       const text = result.response.text();
       
       // Extract the JSON from the response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("Failed to parse metadata from AI response");
+      if (!jsonMatch) throw new Error("Impossible de parser les métadonnées générées");
       
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error("Error generating metadata:", error);
+      console.error("Erreur de génération de métadonnées:", error);
       throw error;
     }
   }

@@ -39,7 +39,7 @@ export const IdeaGenerationStep: React.FC<IdeaGenerationStepProps> = ({ onIdeaSe
     <div className="space-y-6 animate-slide-up">
       <section className="glass p-4 rounded-xl space-y-4">
         <h2 className="text-lg font-semibold">Générer des idées de vidéos</h2>
-        <p className="text-sm text-tva-text/70">
+        <p className="text-sm text-tva-text/90">
           Entrez votre niche ou le sujet de votre vidéo pour recevoir des idées personnalisées basées sur les tendances actuelles.
         </p>
         <div className="flex space-x-2">
@@ -48,7 +48,7 @@ export const IdeaGenerationStep: React.FC<IdeaGenerationStepProps> = ({ onIdeaSe
             placeholder="Ex: cuisine, fitness, mode, technologie..."
             value={niche}
             onChange={(e) => setNiche(e.target.value)}
-            className="flex-1 bg-tva-surface/60 border border-tva-border"
+            className="flex-1 bg-tva-background/60 border border-tva-border text-tva-text"
           />
           <Button
             onClick={handleGenerateIdeas}
@@ -62,7 +62,7 @@ export const IdeaGenerationStep: React.FC<IdeaGenerationStepProps> = ({ onIdeaSe
             ) : (
               <>
                 Générer
-                <Sparkles size={16} />
+                <Sparkles size={16} className="ml-1" />
               </>
             )}
           </Button>
@@ -84,10 +84,10 @@ export const IdeaGenerationStep: React.FC<IdeaGenerationStepProps> = ({ onIdeaSe
                   </div>
                 </div>
                 
-                <h4 className="font-medium mb-2">{idea.title}</h4>
-                <p className="text-sm text-tva-text/80 mb-3">{idea.description}</p>
+                <h4 className="font-medium mb-2 text-tva-text">{idea.title}</h4>
+                <p className="text-sm text-tva-text/90 mb-3">{idea.description}</p>
                 
-                <div className="flex justify-between items-center text-xs text-tva-text/70">
+                <div className="flex justify-between items-center text-xs text-tva-text/90">
                   <div>
                     <span>Public: {idea.audience}</span>
                   </div>

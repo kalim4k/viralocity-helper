@@ -56,9 +56,9 @@ export const ScriptAnalysisStep: React.FC<ScriptAnalysisStepProps> = ({
       <div className="glass p-4 rounded-xl">
         <div className="flex justify-between items-center mb-3">
           <h3 className="font-medium">Votre script ({scriptType === "voiceover" ? "Voix Off" : "Scénario"}) :</h3>
-          <span className="text-xs text-tva-text/70">Durée: {generatedScript.durationEstimate}</span>
+          <span className="text-xs text-tva-text/80">Durée: {generatedScript.durationEstimate}</span>
         </div>
-        <div className="bg-tva-surface/60 p-3 rounded-lg text-sm max-h-40 overflow-y-auto whitespace-pre-line">
+        <div className="bg-tva-background/80 p-3 rounded-lg text-sm max-h-40 overflow-y-auto whitespace-pre-line text-tva-text border border-tva-border">
           {generatedScript.script}
         </div>
       </div>
@@ -77,7 +77,7 @@ export const ScriptAnalysisStep: React.FC<ScriptAnalysisStepProps> = ({
               <Lightbulb size={18} className="text-yellow-400 mr-2" />
               <h3 className="font-medium">Hook recommandé</h3>
             </div>
-            <p className="text-sm bg-tva-surface/60 p-3 rounded-lg">{analysis.hookSuggestion}</p>
+            <p className="text-sm bg-tva-background/80 p-3 rounded-lg text-tva-text border border-tva-border">{analysis.hookSuggestion}</p>
           </div>
           
           <div className="glass p-4 rounded-xl">
@@ -85,7 +85,7 @@ export const ScriptAnalysisStep: React.FC<ScriptAnalysisStepProps> = ({
               <MessageSquare size={18} className="text-tva-primary mr-2" />
               <h3 className="font-medium">Conseils de montage</h3>
             </div>
-            <p className="text-sm bg-tva-surface/60 p-3 rounded-lg whitespace-pre-line">{analysis.editingTips}</p>
+            <p className="text-sm bg-tva-background/80 p-3 rounded-lg whitespace-pre-line text-tva-text border border-tva-border">{analysis.editingTips}</p>
           </div>
           
           <div className="glass p-4 rounded-xl">
@@ -93,7 +93,7 @@ export const ScriptAnalysisStep: React.FC<ScriptAnalysisStepProps> = ({
               <MessageSquare size={18} className="text-tva-secondary mr-2" />
               <h3 className="font-medium">Appel à l'action</h3>
             </div>
-            <p className="text-sm bg-tva-surface/60 p-3 rounded-lg">{analysis.callToAction}</p>
+            <p className="text-sm bg-tva-background/80 p-3 rounded-lg text-tva-text border border-tva-border">{analysis.callToAction}</p>
           </div>
           
           <div className="flex justify-end mt-6">

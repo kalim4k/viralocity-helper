@@ -88,7 +88,7 @@ export const MetadataGenerationStep: React.FC<MetadataGenerationStepProps> = ({
                 {copied.title ? <Check size={16} /> : <Copy size={16} />}
               </Button>
             </div>
-            <p className="bg-tva-surface/60 p-3 rounded-lg">{metadata.title}</p>
+            <p className="bg-tva-background/80 p-3 rounded-lg text-tva-text border border-tva-border">{metadata.title}</p>
           </div>
           
           <div className="glass p-4 rounded-xl">
@@ -103,7 +103,7 @@ export const MetadataGenerationStep: React.FC<MetadataGenerationStepProps> = ({
                 {copied.description ? <Check size={16} /> : <Copy size={16} />}
               </Button>
             </div>
-            <p className="bg-tva-surface/60 p-3 rounded-lg text-sm whitespace-pre-line">{metadata.description}</p>
+            <p className="bg-tva-background/80 p-3 rounded-lg text-sm whitespace-pre-line text-tva-text border border-tva-border">{metadata.description}</p>
           </div>
           
           <div className="glass p-4 rounded-xl">
@@ -118,7 +118,7 @@ export const MetadataGenerationStep: React.FC<MetadataGenerationStepProps> = ({
                 {copied.hashtags ? <Check size={16} /> : <Copy size={16} />}
               </Button>
             </div>
-            <div className="flex flex-wrap gap-2 bg-tva-surface/60 p-3 rounded-lg">
+            <div className="flex flex-wrap gap-2 bg-tva-background/80 p-3 rounded-lg text-tva-text border border-tva-border">
               {metadata.hashtags.map((tag, index) => (
                 <span key={index} className="text-tva-primary">{tag}</span>
               ))}

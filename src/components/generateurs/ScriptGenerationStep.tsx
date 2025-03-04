@@ -75,7 +75,7 @@ export const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
           >
             <Mic size={32} className={`mb-2 ${scriptType === "voiceover" ? "text-tva-primary" : ""}`} />
             <span className="font-medium">Voix Off</span>
-            <p className="text-xs text-center mt-1 text-tva-text/70">
+            <p className="text-xs text-center mt-1 text-tva-text/80">
               Narration parlée accompagnant les visuels
             </p>
           </button>
@@ -90,7 +90,7 @@ export const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
           >
             <Film size={32} className={`mb-2 ${scriptType === "scenario" ? "text-tva-primary" : ""}`} />
             <span className="font-medium">Scénario</span>
-            <p className="text-xs text-center mt-1 text-tva-text/70">
+            <p className="text-xs text-center mt-1 text-tva-text/80">
               Actions et dialogues pour une mise en scène
             </p>
           </button>
@@ -118,16 +118,16 @@ export const ScriptGenerationStep: React.FC<ScriptGenerationStepProps> = ({
         <div className="glass p-4 rounded-xl space-y-4 mt-6">
           <div className="flex justify-between items-center">
             <h3 className="font-medium">Script généré :</h3>
-            <span className="text-xs text-tva-text/70">Durée estimée: {generatedScript.durationEstimate}</span>
+            <span className="text-xs text-tva-text/80">Durée estimée: {generatedScript.durationEstimate}</span>
           </div>
           
-          <div className="bg-tva-surface/60 p-4 rounded-lg text-sm whitespace-pre-line">
+          <div className="bg-tva-background/80 p-4 rounded-lg text-sm whitespace-pre-line text-tva-text border border-tva-border">
             {generatedScript.script}
           </div>
           
           <div className="flex justify-end">
             <Button
-              onClick={() => onScriptGenerated(generatedScript, scriptType)}
+              onClick={() => onScriptGenerated(generatedScript, scriptType as "voiceover" | "scenario")}
               className="bg-tva-primary hover:bg-tva-primary/90 text-white"
             >
               Continuer
