@@ -15,28 +15,40 @@ const API_CONFIG: TikTokApiConfig = {
 export async function fetchUserData(username: string): Promise<RapidAPIResponse> {
   console.log(`API Client: Fetching data for username: ${username}`);
   
-  const response = await fetch(`https://tiktok-user.p.rapidapi.com/getuser/${username}`, {
-    method: 'GET',
-    headers: {
-      'x-rapidapi-host': API_CONFIG.apiHost,
-      'x-rapidapi-key': API_CONFIG.apiKey
-    }
-  });
-  
-  if (!response.ok) {
-    const statusCode = response.status;
-    console.error(`API responded with status: ${statusCode}`);
+  try {
+    const response = await fetch(`https://tiktok-user.p.rapidapi.com/getuser/${username}`, {
+      method: 'GET',
+      headers: {
+        'x-rapidapi-host': API_CONFIG.apiHost,
+        'x-rapidapi-key': API_CONFIG.apiKey
+      }
+    });
     
-    if (statusCode === 404) {
-      throw new Error("No user found");
-    } else if (statusCode === 429) {
-      throw new Error("Rate limit exceeded. Please try again later.");
-    } else {
-      throw new Error(`Error fetching TikTok profile: ${statusCode}`);
+    if (!response.ok) {
+      const statusCode = response.status;
+      console.error(`API responded with status: ${statusCode}`);
+      
+      if (statusCode === 404) {
+        throw new Error("No user found");
+      } else if (statusCode === 429) {
+        throw new Error("Rate limit exceeded. Please try again later.");
+      } else {
+        throw new Error(`Error fetching TikTok profile: ${statusCode}`);
+      }
     }
+    
+    const result = await response.json() as RapidAPIResponse;
+    console.log('Raw API response received:', JSON.stringify(result).substring(0, 300) + '...');
+    
+    // Validate the API response structure
+    if (!result.data || !result.data.owner || !result.data.owner.user_info) {
+      console.error('Invalid API response structure:', result);
+      throw new Error('API returned invalid data structure');
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Error in fetchUserData:', error);
+    throw error;
   }
-  
-  const result = await response.json() as RapidAPIResponse;
-  console.log('Raw API response received');
-  return result;
 }

@@ -16,13 +16,18 @@ export async function fetchTikTokProfile(username: string): Promise<TikTokProfil
   try {
     // Fetch raw data from the API
     const result = await fetchUserData(cleanUsername);
+    console.log('Service: API response received, mapping to profile...');
     
     // Map the response to our application model
     const profile = mapToTikTokProfile(result, cleanUsername);
+    console.log('Service: Profile successfully mapped');
     
     return profile;
   } catch (error) {
     console.error('Error in TikTok service:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+    }
     throw error;
   }
 }

@@ -12,17 +12,13 @@ export function mapToTikTokProfile(response: RapidAPIResponse, username: string)
   console.log('Mapping API response to TikTokProfile');
   
   // Validate the response structure
-  if (!response.data || !response.data.user_list || response.data.user_list.length === 0) {
-    console.error('No user found in API response', response);
+  if (!response.data || !response.data.owner || !response.data.owner.user_info) {
+    console.error('Invalid API response structure:', response);
     throw new Error('No user found with that username');
   }
   
-  // Get the first user from the list (most relevant match)
-  const userInfo = response.data.user_list[0].user_info;
-  if (!userInfo) {
-    throw new Error('User data is incomplete');
-  }
-  
+  // Get user info from the correct path
+  const userInfo = response.data.owner.user_info;
   console.log('User info found:', userInfo);
   
   // Clean the username (remove @ if present)
@@ -34,7 +30,7 @@ export function mapToTikTokProfile(response: RapidAPIResponse, username: string)
     displayName: userInfo.nickname || cleanUsername,
     avatar: userInfo.avatar_thumb?.url_list?.[0] || 'https://placehold.co/200x200?text=No+Avatar',
     followers: userInfo.follower_count || 0,
-    likes: userInfo.total_favorited || 0,
+    likes: userInfo.heartCount || userInfo.heart || userInfo.total_favorited || 0,
     bio: userInfo.signature || '',
     videos: [
       // Generate 3 placeholder videos since this API doesn't return videos
