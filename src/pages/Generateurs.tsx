@@ -1,136 +1,150 @@
+
 import React, { useState } from 'react';
 import { AppLayout } from '../components/AppLayout';
-import { Sparkles, MessageSquare, Hash, FileText, Video, ChevronRight } from 'lucide-react';
+import { Sparkles, FileText, Video, Hash, MessageSquare } from 'lucide-react';
+import { ProgressSteps, Step } from '@/components/ProgressSteps';
+import { IdeaGenerationStep } from '@/components/generateurs/IdeaGenerationStep';
+import { ScriptGenerationStep } from '@/components/generateurs/ScriptGenerationStep';
+import { ScriptAnalysisStep } from '@/components/generateurs/ScriptAnalysisStep';
+import { MetadataGenerationStep } from '@/components/generateurs/MetadataGenerationStep';
+import { VideoIdea, VideoScript, VideoAnalysis } from '@/services/geminiService';
+import { toast } from 'sonner';
 
 const GenerateursPage = () => {
-  const [activeTab, setActiveTab] = useState<string>('ideas');
+  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  
+  const [selectedIdea, setSelectedIdea] = useState<VideoIdea | null>(null);
+  const [generatedScript, setGeneratedScript] = useState<VideoScript | null>(null);
+  const [scriptType, setScriptType] = useState<"voiceover" | "scenario" | null>(null);
+  const [scriptAnalysis, setScriptAnalysis] = useState<VideoAnalysis | null>(null);
 
-  const tabs = [
+  const steps: Step[] = [
     { id: 'ideas', label: 'Idées', icon: Sparkles },
-    { id: 'scripts', label: 'Scripts', icon: FileText },
-    { id: 'hooks', label: 'Hooks', icon: Video },
-    { id: 'hashtags', label: 'Hashtags', icon: Hash }
+    { id: 'script', label: 'Script', icon: FileText },
+    { id: 'analysis', label: 'Analyse', icon: MessageSquare },
+    { id: 'metadata', label: 'Métadonnées', icon: Hash }
   ];
 
-  // Exemples d'idées de vidéos générées
-  const videoIdeas = [
-    {
-      title: "Comment j'ai gagné 10K abonnés en 1 semaine",
-      type: "Growth",
-      viralScore: 92,
-      trend: "En hausse",
-      views: "500K-1M"
-    },
-    {
-      title: "3 transitions faciles pour débutants",
-      type: "Tutorial",
-      viralScore: 87,
-      trend: "Stable",
-      views: "200K-500K"
-    },
-    {
-      title: "Ce que personne ne dit sur les revenus TikTok",
-      type: "Informative",
-      viralScore: 95,
-      trend: "Trending",
-      views: "1M+"
+  const handleStepClick = (index: number) => {
+    // Only allow navigation to completed steps or the next available step
+    if (index <= Math.max(...completedSteps, 0) + 1 && index <= completedSteps.length) {
+      setCurrentStep(index);
     }
-  ];
+  };
+
+  const handleIdeaSelected = (idea: VideoIdea) => {
+    setSelectedIdea(idea);
+    setCurrentStep(1);
+    
+    if (!completedSteps.includes(0)) {
+      setCompletedSteps([...completedSteps, 0]);
+    }
+    
+    toast.success('Idée sélectionnée! Passons à la création du script.');
+  };
+
+  const handleScriptGenerated = (script: VideoScript, type: "voiceover" | "scenario") => {
+    setGeneratedScript(script);
+    setScriptType(type);
+    setCurrentStep(2);
+    
+    if (!completedSteps.includes(1)) {
+      setCompletedSteps([...completedSteps, 1]);
+    }
+    
+    toast.success('Script généré! Passons à l\'analyse.');
+  };
+
+  const handleAnalysisComplete = (analysis: VideoAnalysis) => {
+    setScriptAnalysis(analysis);
+    setCurrentStep(3);
+    
+    if (!completedSteps.includes(2)) {
+      setCompletedSteps([...completedSteps, 2]);
+    }
+    
+    toast.success('Analyse terminée! Générons les métadonnées.');
+  };
+
+  const handleComplete = () => {
+    if (!completedSteps.includes(3)) {
+      setCompletedSteps([...completedSteps, 3]);
+    }
+    
+    toast.success('Félicitations! Votre contenu TikTok est prêt à être créé!');
+  };
+
+  const handleBackClick = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const resetWorkflow = () => {
+    setCurrentStep(0);
+    setCompletedSteps([]);
+    setSelectedIdea(null);
+    setGeneratedScript(null);
+    setScriptType(null);
+    setScriptAnalysis(null);
+    toast.info('Workflow réinitialisé. Commençons un nouveau projet!');
+  };
 
   return (
     <AppLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Générateurs</h1>
-          <button className="text-xs py-1.5 px-3 rounded-full bg-tva-surface border border-tva-border">
-            Mon historique
-          </button>
-        </div>
-
-        {/* Tabs navigation */}
-        <div className="glass rounded-xl p-1 flex space-x-1">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-1.5 flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === tab.id
-                  ? 'bg-tva-primary text-white'
-                  : 'text-tva-text/70 hover:text-tva-text hover:bg-tva-surface'
-              }`}
+          {completedSteps.length > 0 && (
+            <button 
+              onClick={resetWorkflow}
+              className="text-xs py-1.5 px-3 rounded-full bg-tva-surface border border-tva-border"
             >
-              <tab.icon size={16} />
-              <span>{tab.label}</span>
+              Nouveau projet
             </button>
-          ))}
+          )}
         </div>
 
-        {/* Content area */}
-        {activeTab === 'ideas' && (
-          <>
-            <section className="glass p-4 rounded-xl space-y-4">
-              <h2 className="text-lg font-semibold">Analysez votre compte</h2>
-              <p className="text-sm text-tva-text/70">
-                Nous analyserons votre profil pour générer des idées de vidéos personnalisées en fonction de votre niche et des tendances actuelles.
-              </p>
-              <div className="flex space-x-2">
-                <input 
-                  type="text" 
-                  placeholder="@votrepseudo" 
-                  className="flex-1 bg-tva-surface/60 border border-tva-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-tva-primary" 
-                />
-                <button className="bg-tva-primary hover:bg-tva-primary/90 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all">
-                  Analyser
-                </button>
-              </div>
-            </section>
+        {/* Progress steps */}
+        <ProgressSteps
+          steps={steps}
+          currentStep={currentStep}
+          completedSteps={completedSteps}
+          onStepClick={handleStepClick}
+        />
 
-            <h3 className="text-lg font-semibold mt-6 mb-3">Idées recommandées</h3>
-            
-            <div className="space-y-3">
-              {videoIdeas.map((idea, index) => (
-                <div key={index} className="glass p-4 rounded-xl hover-card cursor-pointer">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="badge">{idea.type}</span>
-                    <div className="flex items-center space-x-1">
-                      <Sparkles size={14} className="text-yellow-400" />
-                      <span className="text-xs font-semibold">{idea.viralScore}%</span>
-                    </div>
-                  </div>
-                  
-                  <h4 className="font-medium mb-2">{idea.title}</h4>
-                  
-                  <div className="flex justify-between items-center text-xs text-tva-text/70">
-                    <div className="flex items-center space-x-3">
-                      <span>Trend: {idea.trend}</span>
-                      <span>~{idea.views} vues</span>
-                    </div>
-                    <button className="flex items-center text-tva-primary hover:text-tva-primary/80">
-                      <span className="mr-1">Choisir</span>
-                      <ChevronRight size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button className="w-full py-3 mt-4 text-sm font-medium text-tva-primary bg-tva-primary/10 rounded-xl hover:bg-tva-primary/20 transition-all">
-              Voir plus d'idées
-            </button>
-          </>
+        {/* Step content */}
+        {currentStep === 0 && (
+          <IdeaGenerationStep onIdeaSelected={handleIdeaSelected} />
         )}
 
-        {activeTab === 'scripts' && (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <MessageSquare size={40} className="text-tva-text/20 mb-4" />
-            <h3 className="text-lg font-medium mb-2">Choisissez d'abord une idée de vidéo</h3>
-            <p className="text-sm text-tva-text/60 max-w-xs">
-              Sélectionnez une idée de vidéo dans l'onglet "Idées" pour générer un script adapté.
-            </p>
-          </div>
+        {currentStep === 1 && selectedIdea && (
+          <ScriptGenerationStep
+            selectedIdea={selectedIdea}
+            onScriptGenerated={handleScriptGenerated}
+            onBackClick={handleBackClick}
+          />
         )}
 
-        {/* Other tabs would be implemented similarly */}
+        {currentStep === 2 && selectedIdea && generatedScript && scriptType && (
+          <ScriptAnalysisStep
+            selectedIdea={selectedIdea}
+            generatedScript={generatedScript}
+            scriptType={scriptType}
+            onAnalysisComplete={handleAnalysisComplete}
+            onBackClick={handleBackClick}
+          />
+        )}
+
+        {currentStep === 3 && selectedIdea && generatedScript && (
+          <MetadataGenerationStep
+            selectedIdea={selectedIdea}
+            generatedScript={generatedScript}
+            onBackClick={handleBackClick}
+            onComplete={handleComplete}
+          />
+        )}
       </div>
     </AppLayout>
   );
