@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { formatUsername } from '@/utils/formatters';
+import { formatUsername, formatError } from '@/utils/formatters';
+import { fetchTikTokProfile } from '@/services/tiktokService';
 
 // Create a TikTok icon component
 const TiktokIcon = () => (
@@ -66,51 +67,19 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
     setError(null);
 
     try {
-      // In a real implementation, this would be an API call to our backend
-      // which would handle the TikTok OAuth flow
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network request
-      
       const formattedUsername = formatUsername(username);
-      
-      // This is mock data - in a real implementation, this would come from the TikTok API
-      const mockProfile: TikTokProfile = {
-        username: formattedUsername,
-        displayName: username.replace('@', '').charAt(0).toUpperCase() + username.replace('@', '').slice(1),
-        avatar: `https://i.pravatar.cc/150?u=${username}`, // Random avatar based on username
-        followers: Math.floor(Math.random() * 100000),
-        likes: Math.floor(Math.random() * 1000000),
-        videos: [
-          {
-            id: '1',
-            thumbnail: 'https://picsum.photos/200/350?random=1',
-            views: Math.floor(Math.random() * 50000),
-            title: 'Mon dernier tutoriel #viral'
-          },
-          {
-            id: '2',
-            thumbnail: 'https://picsum.photos/200/350?random=2',
-            views: Math.floor(Math.random() * 50000),
-            title: 'Comment devenir viral sur TikTok'
-          },
-          {
-            id: '3',
-            thumbnail: 'https://picsum.photos/200/350?random=3',
-            views: Math.floor(Math.random() * 50000),
-            title: 'Mes astuces pour gagner des followers'
-          }
-        ]
-      };
+      const profile = await fetchTikTokProfile(formattedUsername);
 
       toast({
         title: "Compte connecté avec succès",
-        description: `Bienvenue ${mockProfile.displayName}!`,
+        description: `Bienvenue ${profile.displayName}!`,
       });
       
-      onSuccess(mockProfile);
+      onSuccess(profile);
       onClose();
     } catch (err) {
       console.error(err);
-      setError("Erreur lors de la connexion à TikTok. Veuillez réessayer.");
+      setError(formatError(err));
     } finally {
       setIsLoading(false);
     }
