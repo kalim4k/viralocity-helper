@@ -32,9 +32,13 @@ export function formatError(error: unknown): string {
   console.log('Formatting error:', error);
   
   if (error instanceof Error) {
-    // Check for specific error messages
+    // Check for specific error messages from the TikTok API
     if (error.message.includes('No user found')) {
       return "Aucun utilisateur trouvé avec ce nom d'utilisateur. Vérifiez l'orthographe et réessayez.";
+    }
+    
+    if (error.message.includes('Rate limit exceeded')) {
+      return "Trop de requêtes. Veuillez attendre quelques minutes avant de réessayer.";
     }
     
     if (error.message.includes('Error fetching TikTok profile')) {
@@ -47,6 +51,10 @@ export function formatError(error: unknown): string {
     
     if (error.message.includes('timeout') || error.message.includes('Timeout')) {
       return "La requête a pris trop de temps. Veuillez réessayer plus tard.";
+    }
+    
+    if (error.message.includes('User data is incomplete')) {
+      return "Les données de profil sont incomplètes. Essayez avec un autre compte.";
     }
     
     // Si c'est un message d'erreur générique, on le retourne directement

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { formatUsername, formatError } from '@/utils/formatters';
-import { fetchTikTokProfile, fetchTikTokProfileAlternative } from '@/services/tiktokService';
+import { fetchTikTokProfile } from '@/services/tiktokService';
 
 // Create a TikTok icon component
 const TiktokIcon = () => (
@@ -32,6 +32,7 @@ export interface TikTokProfile {
   avatar: string;
   followers: number;
   likes: number;
+  bio?: string;
   videos: Array<{
     id: string;
     thumbnail: string;
@@ -70,39 +71,15 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
       console.log(`Submitting username: ${username}`);
       const formattedUsername = formatUsername(username);
       
-      // Tentative avec la première méthode
-      try {
-        console.log("Trying primary method first...");
-        const profile = await fetchTikTokProfile(formattedUsername);
-        
-        toast({
-          title: "Compte connecté avec succès",
-          description: `Bienvenue ${profile.displayName}!`,
-        });
-        
-        onSuccess(profile);
-        onClose();
-        return; // Sortir de la fonction si la première méthode réussit
-      } catch (primaryError) {
-        console.log("Primary method failed, trying alternative method...", primaryError);
-        
-        // Si la première méthode échoue, essayer la méthode alternative
-        try {
-          const profile = await fetchTikTokProfileAlternative(formattedUsername);
-          
-          toast({
-            title: "Compte connecté avec succès",
-            description: `Bienvenue ${profile.displayName}!`,
-          });
-          
-          onSuccess(profile);
-          onClose();
-          return;
-        } catch (secondaryError) {
-          console.error("Both methods failed", secondaryError);
-          throw secondaryError; // Propager l'erreur pour être traitée dans le catch externe
-        }
-      }
+      const profile = await fetchTikTokProfile(formattedUsername);
+      
+      toast({
+        title: "Compte connecté avec succès",
+        description: `Bienvenue ${profile.displayName}!`,
+      });
+      
+      onSuccess(profile);
+      onClose();
     } catch (err) {
       console.error("Error in TikTokConnectModal:", err);
       setError(formatError(err));
