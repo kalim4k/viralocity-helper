@@ -41,6 +41,15 @@ export function formatError(error: unknown): string {
       return "Impossible de se connecter à TikTok en ce moment. Veuillez réessayer plus tard.";
     }
     
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      return "Problème de connexion réseau. Vérifiez votre connexion internet et réessayez.";
+    }
+    
+    if (error.message.includes('timeout') || error.message.includes('Timeout')) {
+      return "La requête a pris trop de temps. Veuillez réessayer plus tard.";
+    }
+    
+    // Si c'est un message d'erreur générique, on le retourne directement
     return error.message;
   }
   
@@ -48,5 +57,6 @@ export function formatError(error: unknown): string {
     return error;
   }
   
-  return "Une erreur s'est produite lors de la connexion à TikTok";
+  // Message d'erreur par défaut
+  return "Une erreur s'est produite lors de la connexion à TikTok. Veuillez réessayer.";
 }
