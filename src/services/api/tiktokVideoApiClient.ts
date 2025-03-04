@@ -4,7 +4,7 @@ import { TikTokVideoResponse } from '@/types/tiktokVideo.types';
 // API configuration
 const API_CONFIG = {
   apiKey: 'bd18f4b949msh6edd4e1d444b6a0p18d393jsnf0169527896e',
-  apiHost: 'tiktok-user.p.rapidapi.com'
+  apiHost: 'tiktok-api6.p.rapidapi.com'
 };
 
 /**
@@ -67,7 +67,7 @@ export async function fetchVideoData(videoIdOrUrl: string): Promise<TikTokVideoR
       
     console.log(`API Client: Récupération des données pour la vidéo ID: ${videoId}`);
     
-    const response = await fetch(`https://tiktok-user.p.rapidapi.com/getvideo/${videoId}`, {
+    const response = await fetch(`https://tiktok-api6.p.rapidapi.com/video/details?video_id=${videoId}`, {
       method: 'GET',
       headers: {
         'x-rapidapi-host': API_CONFIG.apiHost,
@@ -91,14 +91,8 @@ export async function fetchVideoData(videoIdOrUrl: string): Promise<TikTokVideoR
     const result = await response.json();
     console.log('Réponse API brute reçue:', JSON.stringify(result).substring(0, 300) + '...');
     
-    // Vérifie si la réponse contient "No match found"
-    if (result.data === "No match found." || 
-        (typeof result.data === 'string' && result.data.includes('No match found'))) {
-      throw new Error("Aucune vidéo trouvée avec cet identifiant. Essayez plutôt avec l'ID numérique de la vidéo.");
-    }
-    
-    // Validation de la structure de la réponse API
-    if (!result.data || !result.data.owner || !result.data.item) {
+    // Vérification de la validité de la réponse
+    if (!result || !result.details) {
       console.error('Structure de réponse API invalide:', result);
       throw new Error('L\'API a retourné une structure de données invalide');
     }

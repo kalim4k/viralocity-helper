@@ -23,11 +23,6 @@ export async function fetchTikTokVideo(videoIdOrUrl: string): Promise<TikTokProc
     const result = await fetchVideoData(videoIdOrUrl);
     console.log('Service: Réponse API reçue, conversion en cours...');
     
-    // Si la réponse contient une chaîne au lieu d'un objet data, c'est une erreur
-    if (typeof result.data === 'string') {
-      throw new Error(`L'API a retourné une erreur: ${result.data}`);
-    }
-    
     // Conversion des données en notre modèle d'application
     const video = mapToTikTokVideo(result);
     console.log('Service: Vidéo traitée avec succès');
@@ -51,11 +46,11 @@ export function calculateVideoMetrics(video: TikTokProcessedVideo) {
   // Calcul du taux d'engagement (likes + commentaires + partages) / vues
   const engagementRate = (video.stats.likes + video.stats.comments + video.stats.shares) / video.stats.views * 100;
   
-  // Estimation très grossière du taux de complétion basée sur le ratio likes/vues
-  const completionRate = Math.min(85, 30 + (video.stats.likes / video.stats.views * 200));
+  // Estimation du taux de complétion basée sur le ratio likes/vues et la durée
+  const durationFactor = video.duration < 15 ? 1.2 : video.duration < 30 ? 1 : video.duration < 60 ? 0.9 : 0.8;
+  const completionRate = Math.min(85, 30 + (video.stats.likes / video.stats.views * 200) * durationFactor);
   
   // Score de hook basé sur l'engagement et la durée (les vidéos courtes avec bon engagement ont probablement un bon hook)
-  const durationFactor = video.duration < 30 ? 1.2 : video.duration < 60 ? 1 : 0.8;
   const hookScore = Math.min(100, engagementRate * durationFactor * 15);
   
   // Score de viralité basé sur les vues, partages et enregistrements

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { AppLayout } from '../components/AppLayout';
-import { Search, BarChart3, RefreshCw, Heart, MessageSquare, ChevronRight, ExternalLink, UploadCloud, HelpCircle } from 'lucide-react';
+import { Search, ExternalLink, UploadCloud, HelpCircle, Download } from 'lucide-react';
 import { VideoMetricsDisplay } from '@/components/VideoMetricsDisplay';
 import { VideoRecommendations } from '@/components/VideoRecommendations';
 import { HashtagRecommendations } from '@/components/HashtagRecommendations';
@@ -15,7 +15,8 @@ import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger 
+  TooltipTrigger,
+  Badge
 } from '@/components/ui/tooltip';
 
 const AnalysePage = () => {
@@ -56,6 +57,12 @@ const AnalysePage = () => {
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -105,7 +112,7 @@ const AnalysePage = () => {
           <div className="bg-tva-accent/10 border border-tva-accent/30 rounded-lg p-3 text-xs">
             <p className="font-medium text-tva-accent">Note importante</p>
             <p className="mt-1">L'API fonctionne uniquement avec l'ID numérique de la vidéo. 
-            L'extraction de l'ID depuis l'URL n'est pas toujours fiable avec certains formats d'URL.</p>
+            Exemple d'ID valide: 7149284958899785006</p>
           </div>
 
           <div className="flex space-x-2">
@@ -113,7 +120,7 @@ const AnalysePage = () => {
               type="text" 
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="7259090610592697646" 
+              placeholder="7149284958899785006" 
               className="flex-1 bg-tva-surface/60 border border-tva-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-tva-primary text-black" 
             />
             <button 
@@ -166,15 +173,33 @@ const AnalysePage = () => {
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
                   <h3 className="text-white font-medium text-sm">{video.description || "Sans description"}</h3>
                 </div>
-                <div className="absolute top-2 right-2">
+                <div className="absolute top-2 right-2 flex space-x-2">
                   <a 
                     href={video.url} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="bg-black/50 hover:bg-black/70 p-1.5 rounded-full transition-all"
+                    title="Voir sur TikTok"
                   >
                     <ExternalLink size={14} className="text-white" />
                   </a>
+                  {video.downloadUrl && (
+                    <a 
+                      href={video.unwatermarkedUrl || video.downloadUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="bg-tva-primary/80 hover:bg-tva-primary p-1.5 rounded-full transition-all"
+                      title="Télécharger la vidéo"
+                      download
+                    >
+                      <Download size={14} className="text-white" />
+                    </a>
+                  )}
+                </div>
+                <div className="absolute top-2 left-2">
+                  <Badge variant="secondary" className="text-xs bg-black/50 text-white">
+                    {formatDuration(video.duration)}
+                  </Badge>
                 </div>
               </div>
 
@@ -207,9 +232,16 @@ const AnalysePage = () => {
                     target.src = 'https://placehold.co/100/3730a3/ffffff?text=Avatar';
                   }}
                 />
-                <div>
+                <div className="flex items-center">
                   <p className="font-medium text-sm">{video.nickname}</p>
-                  <p className="text-xs text-tva-text/70">@{video.username}</p>
+                  {video.isVerified && (
+                    <span className="ml-1 bg-tva-primary/20 p-0.5 rounded-full">
+                      <svg className="w-3 h-3 text-tva-primary" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                      </svg>
+                    </span>
+                  )}
+                  <p className="text-xs text-tva-text/70 ml-1">@{video.username}</p>
                 </div>
               </div>
             </section>

@@ -7,60 +7,45 @@ import { TikTokVideoResponse, TikTokProcessedVideo } from '@/types/tiktokVideo.t
  * @returns Objet vidéo TikTok traité
  */
 export function mapToTikTokVideo(response: TikTokVideoResponse): TikTokProcessedVideo {
-  // Si la réponse contient une chaîne au lieu d'un objet, c'est une erreur
-  if (typeof response.data === 'string') {
-    throw new Error(`Erreur API: ${response.data}`);
-  }
-
   try {
-    const { owner, item } = response.data;
+    const { details } = response;
     
-    if (!owner || !item) {
+    if (!details || !details.author) {
       throw new Error("Structure de données incomplète reçue de l'API");
     }
     
-    // Parse collectCount which can be string or number
-    let collectCount: number;
-    if (typeof item.stats.collectCount === 'string') {
-      collectCount = parseInt(item.stats.collectCount, 10) || 0;
-    } else {
-      collectCount = item.stats.collectCount || 0;
-    }
+    // Conversion de la date de création (timestamp) en format lisible
+    const createdAt = new Date(parseInt(details.create_time) * 1000).toISOString();
     
-    // Ensure we have a valid description (can be undefined in some responses)
-    const description = item.desc || 
-                       (item.contents && item.contents[0] ? item.contents[0].desc : '') ||
-                       '';
-    
-    // Ensure we have valid cover image URLs (can be undefined in some responses)
-    const coverImage = item.video?.cover || 
-                      item.video?.dynamicCover || 
-                      item.video?.originCover || 
-                      '';
+    // Création de l'URL complète de la vidéo
+    const videoUrl = `https://www.tiktok.com/@${details.author.uniqueId}/video/${details.video_id}`;
     
     const processedVideo: TikTokProcessedVideo = {
-      id: item.id,
-      url: `https://www.tiktok.com/@${owner.uniqueId}/video/${item.id}`,
-      username: owner.uniqueId,
-      nickname: owner.nickname,
-      userAvatar: owner.avatarThumb,
-      description: description,
-      cover: coverImage,
-      playUrl: item.video?.playAddr || '',
-      duration: item.video?.duration || 0,
+      id: details.video_id,
+      url: videoUrl,
+      username: details.author.uniqueId,
+      nickname: details.author.nickname,
+      userAvatar: details.author.avatarThumb,
+      isVerified: details.author.verified,
+      description: details.description || '',
+      cover: details.cover || details.avatar_thumb || '',
+      playUrl: details.download_url || '',
+      downloadUrl: details.download_url || '',
+      unwatermarkedUrl: details.unwatermarked_download_url,
+      duration: details.duration || 0,
       stats: {
-        likes: item.stats?.diggCount || 0,
-        shares: item.stats?.shareCount || 0,
-        comments: item.stats?.commentCount || 0,
-        views: item.stats?.playCount || 0,
-        saves: collectCount
+        likes: details.statistics.number_of_hearts || 0,
+        shares: details.statistics.number_of_reposts || 0,
+        comments: details.statistics.number_of_comments || 0,
+        views: details.statistics.number_of_plays || 0,
+        saves: Math.round((details.statistics.number_of_hearts || 0) * 0.07) // Estimation des sauvegardes (environ 7% des likes)
       },
       musicInfo: {
-        title: item.music?.title || 'Son original',
-        author: item.music?.authorName || owner.nickname,
-        isOriginal: item.music?.original || false
+        title: 'Son original', // Info musicale non disponible dans cette API
+        author: details.author.nickname,
+        isOriginal: true
       },
-      createdAt: item.createTime
+      createdAt: createdAt
     };
     
     return processedVideo;

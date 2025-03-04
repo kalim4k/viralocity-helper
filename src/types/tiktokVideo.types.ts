@@ -1,93 +1,54 @@
-
 /**
  * Types pour les données de vidéo TikTok récupérées via RapidAPI
  */
 
 export interface TikTokVideoResponse {
-  status: number;
-  data: {
-    owner: TikTokVideoOwner;
-    item: TikTokVideoItem;
-  } | string; // Pour gérer le cas "No match found"
-}
-
-export interface TikTokVideoOwner {
-  id: string;
-  shortId: string;
-  uniqueId: string;
-  nickname: string;
-  avatarLarger: string;
-  avatarMedium: string;
-  avatarThumb: string;
-  signature: string;
-  createTime: number;
-  verified: boolean;
-  secUid: string;
-  ftc: boolean;
-  relation: number;
-  openFavorite: boolean;
-  commentSetting: number;
-  duetSetting: number;
-  stitchSetting: number;
-  privateAccount: boolean;
-  secret: boolean;
-  isADVirtual: boolean;
-  roomId: string;
-  downloadSetting: number;
-  isEmbedBanned: boolean;
-}
-
-export interface TikTokVideoItem {
-  id: string;
-  desc: string;
-  createTime: string;
-  video: {
-    id: string;
-    height: number;
-    width: number;
-    duration: number;
-    ratio: string;
+  video_id: string;
+  details: {
+    video_id: string;
+    description: string;
+    create_time: string;
+    author: {
+      id: string;
+      shortId: string;
+      uniqueId: string;
+      nickname: string;
+      avatarLarger: string;
+      avatarMedium: string;
+      avatarThumb: string;
+      signature: string;
+      createTime: number;
+      verified: boolean;
+      secUid: string;
+      ftc: boolean;
+      relation: number;
+      openFavorite: boolean;
+      commentSetting: number;
+      duetSetting: number;
+      stitchSetting: number;
+      privateAccount: boolean;
+      secret: boolean;
+      isADVirtual: boolean;
+      roomId: string;
+      downloadSetting: number;
+      isEmbedBanned: boolean;
+    };
+    author_id: string;
+    author_name: string;
+    statistics: {
+      number_of_comments: number;
+      number_of_hearts: number;
+      number_of_plays: number;
+      number_of_reposts: number;
+    };
     cover: string;
-    originCover: string;
-    dynamicCover: string;
-    playAddr: string;
-    downloadAddr: string;
-    shareCover: string[];
-    reflowCover: string;
-    bitrate: number;
-  };
-  author: string;
-  music: {
-    id: string;
-    title: string;
-    playUrl: string;
-    coverLarge: string;
-    coverMedium: string;
-    coverThumb: string;
-    authorName: string;
-    original: boolean;
+    download_url: string;
+    unwatermarked_download_url?: string;
+    video_definition: string;
     duration: number;
+    avatar_thumb: string;
   };
-  stats: {
-    diggCount: number;
-    shareCount: number;
-    commentCount: number;
-    playCount: number;
-    collectCount: string | number;
-  };
-  originalItem: boolean;
-  officalItem: boolean;
-  secret: boolean;
-  forFriend: boolean;
-  digged: boolean;
-  itemCommentStatus: number;
-  duetEnabled: boolean;
-  stitchEnabled: boolean;
-  shareEnabled: boolean;
-  contents?: {
-    desc: string;
-    textExtra?: any[];
-  }[];
+  type: string;
 }
 
 export interface TikTokProcessedVideo {
@@ -99,7 +60,10 @@ export interface TikTokProcessedVideo {
   description: string;
   cover: string;
   playUrl: string;
+  downloadUrl: string;
+  unwatermarkedUrl?: string;
   duration: number;
+  isVerified: boolean;
   stats: {
     likes: number;
     shares: number;
