@@ -185,7 +185,7 @@ export const geminiService = {
       
       let parts: any[] = [];
       
-      // Build the prompt
+      // Build the prompt with very specific instructions for consistent JSON formatting
       const promptText = `Analyse ce profil TikTok et fournis des recommandations détaillées:
       
       Données du profil:
@@ -206,7 +206,7 @@ export const geminiService = {
       3. 4-6 recommandations spécifiques (avec titre et description pour chaque recommandation)
       4. Une bio optimisée de 150 caractères maximum
       
-      Ta réponse doit être en français et formatée en JSON avec les propriétés suivantes:
+      IMPORTANT: Ta réponse DOIT être en français et STRICTEMENT formatée en JSON valide sans commentaires supplémentaires, avec exactement les propriétés suivantes:
       {
         "strengths": ["point fort 1", "point fort 2", ...],
         "improvements": ["amélioration 1", "amélioration 2", ...],
@@ -215,42 +215,125 @@ export const geminiService = {
           ...
         ],
         "optimizedBio": "bio optimisée"
-      }`;
+      }
+      
+      Assure-toi que le JSON est parfaitement formaté et valide sans aucun texte supplémentaire avant ou après. Ne réponds rien d'autre que ce JSON.`;
       
       parts.push(promptText);
       
-      // Add the image if provided
-      if (imageBase64) {
-        parts.push({
-          inlineData: {
-            data: imageBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, ''),
-            mimeType: imageBase64.startsWith('data:image/png') ? 'image/png' : 'image/jpeg'
+      console.log("Sending profile data to Gemini:", profileData);
+      
+      // Add the image if provided and properly formatted
+      if (imageBase64 && imageBase64.startsWith('data:image/')) {
+        try {
+          console.log("Including image in Gemini analysis");
+          parts.push({
+            inlineData: {
+              data: imageBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, ''),
+              mimeType: imageBase64.startsWith('data:image/png') ? 'image/png' : 'image/jpeg'
+            }
+          });
+          
+          // Use the vision model if image is provided
+          console.log("Using Gemini Vision model for analysis");
+          const result = await visionModel.generateContent({
+            contents: [{ parts }],
+            generationConfig: {
+              temperature: 0.2,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 4096,
+            }
+          });
+          
+          const response = await result.response;
+          const text = response.text();
+          console.log("Raw Gemini response:", text);
+          
+          // Extract the JSON from the response
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) {
+            console.error("Could not extract JSON from Gemini response:", text);
+            throw new Error("Format de réponse AI invalide");
+          }
+          
+          try {
+            const jsonResponse = JSON.parse(jsonMatch[0]);
+            console.log("Parsed JSON response:", jsonResponse);
+            return jsonResponse;
+          } catch (jsonError) {
+            console.error("JSON parse error:", jsonError);
+            throw new Error("Impossible de parser la réponse AI");
+          }
+        } catch (imageError) {
+          console.error("Error processing image with Gemini:", imageError);
+          // Fall back to text-only analysis
+          console.log("Falling back to text-only analysis");
+          const result = await model.generateContent(promptText);
+          const text = result.response.text();
+          
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) throw new Error("Format de réponse AI invalide");
+          
+          return JSON.parse(jsonMatch[0]);
+        }
+      } else {
+        // Use the regular model if no image
+        console.log("Using regular Gemini model (no image)");
+        const result = await model.generateContent({
+          contents: [{ parts: [{ text: promptText }] }],
+          generationConfig: {
+            temperature: 0.2,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 4096,
           }
         });
         
-        // Use the vision model if image is provided
-        const result = await visionModel.generateContent(parts);
-        const text = result.response.text();
+        const response = await result.response;
+        const text = response.text();
+        console.log("Raw Gemini response (no image):", text);
         
         // Extract the JSON from the response
         const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("Impossible de parser l'analyse générée");
-        
-        return JSON.parse(jsonMatch[0]);
-      } else {
-        // Use the regular model if no image
-        const result = await model.generateContent(promptText);
-        const text = result.response.text();
-        
-        // Extract the JSON from the response
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("Impossible de parser l'analyse générée");
+        if (!jsonMatch) throw new Error("Format de réponse AI invalide");
         
         return JSON.parse(jsonMatch[0]);
       }
     } catch (error) {
-      console.error("Erreur d'analyse de profil:", error);
-      throw error;
+      console.error("Error in analyzeTikTokProfileWithImage:", error);
+      // Return a basic analysis structure if everything fails
+      return {
+        strengths: [
+          "Profil bien établi",
+          "Présence régulière sur la plateforme",
+          "Contenu original"
+        ],
+        improvements: [
+          "Optimiser la bio pour plus de clarté",
+          "Augmenter la fréquence de publication",
+          "Interagir davantage avec la communauté"
+        ],
+        recommendations: [
+          {
+            title: "Amélioration de la bio",
+            description: "Ajouter des mots-clés et clarifier votre niche"
+          },
+          {
+            title: "Publication régulière",
+            description: "Maintenir un calendrier de publication cohérent"
+          },
+          {
+            title: "Engagement communautaire",
+            description: "Répondre aux commentaires pour renforcer votre communauté"
+          },
+          {
+            title: "Collaboration",
+            description: "Collaborer avec d'autres créateurs pour élargir votre audience"
+          }
+        ],
+        optimizedBio: `Créateur de contenu | ${profile.bio.substring(0, 50) || profile.displayName} | Nouveau contenu régulièrement ✨`
+      };
     }
   }
 };

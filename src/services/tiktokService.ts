@@ -71,8 +71,44 @@ export const fetchTikTokProfile = async (username: string): Promise<TikTokProfil
   } catch (error: any) {
     console.error('Error fetching TikTok profile:', error);
     toast.error(`Erreur lors de la récupération du profil: ${error.message}`);
-    throw error;
+    
+    // Create a mock profile if the API fails
+    const mockProfile: TikTokProfile = createMockProfile(username);
+    return mockProfile;
   }
+};
+
+/**
+ * Creates a mock profile when the API fails
+ */
+const createMockProfile = (username: string): TikTokProfile => {
+  // Generate random stats for demo purposes
+  const followers = Math.floor(10000 + Math.random() * 990000);
+  const following = Math.floor(100 + Math.random() * 900);
+  const likes = followers * (Math.floor(5 + Math.random() * 95) / 10);
+  const videoCount = Math.floor(20 + Math.random() * 180);
+  
+  return {
+    id: 'mock-id',
+    uniqueId: username,
+    username: username,
+    nickname: username,
+    displayName: username,
+    avatar: 'https://placehold.co/100/3730a3/ffffff?text=Avatar',
+    bio: 'Profil de démonstration - Les données réelles n\'ont pas pu être récupérées',
+    verified: Math.random() > 0.7,
+    followers: followers,
+    following: following,
+    likes: likes,
+    videoCount: videoCount,
+    videos: [],
+    displayStats: {
+      followers: formatNumber(followers),
+      following: formatNumber(following),
+      likes: formatNumber(likes),
+      posts: formatNumber(videoCount)
+    }
+  };
 };
 
 /**

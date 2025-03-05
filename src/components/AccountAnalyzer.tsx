@@ -8,6 +8,13 @@ import { toast } from 'sonner';
 import { formatNumber } from '@/utils/formatters';
 import { Progress } from '@/components/ui/progress';
 
+const DEFAULT_DETECTION_POINTS = [
+  { x: 25, y: 30, label: 'Profil' },
+  { x: 70, y: 40, label: 'Stats' },
+  { x: 50, y: 60, label: 'Bio' },
+  { x: 30, y: 80, label: 'Vidéos' }
+];
+
 export const AccountAnalyzer: React.FC = () => {
   const [step, setStep] = useState<'upload' | 'capture-preview' | 'scan' | 'username' | 'analysis'>('upload');
   const [image, setImage] = useState<string | null>(null);
@@ -21,7 +28,7 @@ export const AccountAnalyzer: React.FC = () => {
   const [showCamera, setShowCamera] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [captureInProgress, setCaptureInProgress] = useState(false);
-  const [detectionPoints, setDetectionPoints] = useState<{ x: number, y: number, label: string }[]>([]);
+  const [detectionPoints, setDetectionPoints] = useState<{ x: number, y: number, label: string }[]>(DEFAULT_DETECTION_POINTS);
   const [transitionOverlay, setTransitionOverlay] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -30,6 +37,7 @@ export const AccountAnalyzer: React.FC = () => {
   const scanTimerRef = useRef<number | null>(null);
   const detectionTimerRef = useRef<number | null>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
+  const scanCompletionTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
@@ -40,6 +48,7 @@ export const AccountAnalyzer: React.FC = () => {
   const cleanupResources = () => {
     if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
     if (detectionTimerRef.current) window.clearInterval(detectionTimerRef.current);
+    if (scanCompletionTimeoutRef.current) window.clearTimeout(scanCompletionTimeoutRef.current);
     if (cameraStreamRef.current) {
       cameraStreamRef.current.getTracks().forEach(track => track.stop());
       cameraStreamRef.current = null;
@@ -54,6 +63,7 @@ export const AccountAnalyzer: React.FC = () => {
     reader.onload = (event) => {
       if (event.target?.result) {
         setImage(event.target.result as string);
+        setDetectionPoints(DEFAULT_DETECTION_POINTS);
         startTransitionToScan();
       }
     };
@@ -82,17 +92,7 @@ export const AccountAnalyzer: React.FC = () => {
             if (videoRef.current) {
               videoRef.current.play().then(() => {
                 setIsCameraReady(true);
-                
-                setTimeout(() => {
-                  const initialPoints = [
-                    { x: 25, y: 30, label: 'Profil' },
-                    { x: 70, y: 40, label: 'Stats' },
-                    { x: 50, y: 60, label: 'Bio' },
-                    { x: 30, y: 80, label: 'Vidéos' }
-                  ];
-                  
-                  setDetectionPoints(initialPoints);
-                }, 800);
+                setDetectionPoints(DEFAULT_DETECTION_POINTS);
               });
             }
           };
@@ -127,15 +127,7 @@ export const AccountAnalyzer: React.FC = () => {
       
       setTransitionOverlay(true);
       setStep('capture-preview');
-      
-      if (detectionPoints.length === 0) {
-        setDetectionPoints([
-          { x: 25, y: 30, label: 'Profil' },
-          { x: 70, y: 40, label: 'Stats' },
-          { x: 50, y: 60, label: 'Bio' },
-          { x: 30, y: 80, label: 'Vidéos' }
-        ]);
-      }
+      setDetectionPoints(DEFAULT_DETECTION_POINTS);
       
       setTimeout(() => {
         startTransitionToScan();
@@ -148,15 +140,7 @@ export const AccountAnalyzer: React.FC = () => {
 
   const startTransitionToScan = () => {
     setScanProgress(0);
-    
-    if (detectionPoints.length === 0) {
-      setDetectionPoints([
-        { x: 25, y: 30, label: 'Profil' },
-        { x: 70, y: 40, label: 'Stats' },
-        { x: 50, y: 60, label: 'Bio' },
-        { x: 30, y: 80, label: 'Vidéos' }
-      ]);
-    }
+    setDetectionPoints(DEFAULT_DETECTION_POINTS);
     
     setTimeout(() => {
       setTransitionOverlay(false);
@@ -177,30 +161,35 @@ export const AccountAnalyzer: React.FC = () => {
 
   const simulateScan = () => {
     setIsScanning(true);
-    
-    const baseDetectionPoints = detectionPoints.length ? detectionPoints : [
-      { x: 25, y: 30, label: 'Profil' },
-      { x: 70, y: 40, label: 'Stats' },
-      { x: 50, y: 60, label: 'Bio' },
-      { x: 30, y: 80, label: 'Vidéos' }
-    ];
-    
-    if (baseDetectionPoints.length === 0) {
-      setDetectionPoints([
-        { x: 25, y: 30, label: 'Profil' },
-        { x: 70, y: 40, label: 'Stats' },
-        { x: 50, y: 60, label: 'Bio' },
-        { x: 30, y: 80, label: 'Vidéos' }
-      ]);
-    }
+    setScanProgress(0);
     
     if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
+    if (detectionTimerRef.current) window.clearInterval(detectionTimerRef.current);
+    if (scanCompletionTimeoutRef.current) window.clearTimeout(scanCompletionTimeoutRef.current);
+    
+    if (detectionPoints.length === 0) {
+      setDetectionPoints(DEFAULT_DETECTION_POINTS);
+    }
+    
+    scanCompletionTimeoutRef.current = window.setTimeout(() => {
+      console.log("Backup timer forcing scan completion");
+      setScanProgress(100);
+      setIsScanning(false);
+      
+      setTimeout(() => {
+        setStep('username');
+      }, 1000);
+    }, 15000);
     
     scanTimerRef.current = window.setInterval(() => {
       setScanProgress(prev => {
-        const newProgress = prev + 1.5;
+        const increment = prev < 70 ? 1.5 : 0.8;
+        const newProgress = prev + increment;
+        
         if (newProgress >= 100) {
           if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
+          if (scanCompletionTimeoutRef.current) window.clearTimeout(scanCompletionTimeoutRef.current);
+          
           setTimeout(() => {
             setIsScanning(false);
             setStep('username');
@@ -209,9 +198,7 @@ export const AccountAnalyzer: React.FC = () => {
         }
         return newProgress;
       });
-    }, 80);
-    
-    if (detectionTimerRef.current) window.clearInterval(detectionTimerRef.current);
+    }, 100);
     
     const additionalDetectionPoints = [
       { x: 25, y: 30, label: 'Avatar' },
@@ -222,7 +209,7 @@ export const AccountAnalyzer: React.FC = () => {
       { x: 75, y: 60, label: 'Likes' },
       { x: 55, y: 80, label: 'Engagement' }
     ].filter(point => 
-      !baseDetectionPoints.some(existing => 
+      !detectionPoints.some(existing => 
         Math.abs(existing.x - point.x) < 10 && Math.abs(existing.y - point.y) < 10
       )
     );
@@ -254,19 +241,30 @@ export const AccountAnalyzer: React.FC = () => {
       console.log("Profile data fetched:", profileData);
       setProfile(profileData);
       
-      const analysisResult = await analyzeTikTokProfile(profileData, image);
-      console.log("Analysis result:", analysisResult);
-      setAnalysis(analysisResult);
-      
-      setStep('analysis');
-      
-      toast.success("L'analyse de votre profil TikTok est prête !");
+      setTimeout(async () => {
+        try {
+          const analysisResult = await analyzeTikTokProfile(profileData, image);
+          console.log("Analysis result:", analysisResult);
+          setAnalysis(analysisResult);
+          
+          setStep('analysis');
+          toast.success("L'analyse de votre profil TikTok est prête !");
+        } catch (analysisError) {
+          console.error('Erreur lors de l\'analyse Gemini:', analysisError);
+          toast.error("Erreur d'analyse AI. Utilisation de données de secours.");
+          
+          const fallbackAnalysis = await analyzeTikTokProfile(profileData, null);
+          setAnalysis(fallbackAnalysis);
+          setStep('analysis');
+        } finally {
+          setIsAnalyzing(false);
+        }
+      }, 1000);
     } catch (err) {
-      console.error('Erreur lors de l\'analyse:', err);
+      console.error('Erreur lors de la récupération du profil:', err);
       setError(err instanceof Error ? err.message : 'Une erreur s\'est produite lors de l\'analyse');
       
       toast.error(err instanceof Error ? err.message : 'Une erreur s\'est produite lors de l\'analyse');
-    } finally {
       setIsAnalyzing(false);
     }
   };
