@@ -14,16 +14,19 @@ export type Database = {
           created_at: string
           id: string
           is_admin: boolean
+          kalim: number | null
         }
         Insert: {
           created_at?: string
           id: string
           is_admin?: boolean
+          kalim?: number | null
         }
         Update: {
           created_at?: string
           id?: string
           is_admin?: boolean
+          kalim?: number | null
         }
         Relationships: []
       }
@@ -282,6 +285,12 @@ export type Database = {
         Returns: undefined
       }
       has_active_license: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: {
         Args: {
           user_id: string
         }

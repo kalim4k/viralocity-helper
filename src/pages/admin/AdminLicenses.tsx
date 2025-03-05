@@ -5,6 +5,7 @@ import { GenerateLicenseKeys } from '@/components/admin/GenerateLicenseKeys';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const AdminLicensesPage = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -20,17 +21,21 @@ const AdminLicensesPage = () => {
       }
 
       try {
-        const { data, error } = await supabase
-          .from('admin_users')
-          .select('is_admin')
-          .eq('id', user.id)
-          .maybeSingle();
+        // Use the RPC function call to check admin status
+        const { data, error } = await supabase.rpc('is_admin', {
+          user_id: user.id
+        });
         
-        if (error) throw error;
-        
-        setIsAdmin(!!data?.is_admin);
+        if (error) {
+          console.error('Error checking admin status:', error);
+          toast.error('Erreur lors de la vérification des droits administrateur');
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(!!data);
+        }
       } catch (error) {
         console.error('Error checking admin status:', error);
+        setIsAdmin(false);
       } finally {
         setIsCheckingAdmin(false);
       }
@@ -42,6 +47,7 @@ const AdminLicensesPage = () => {
   // Redirect non-admins
   useEffect(() => {
     if (!isLoading && !isCheckingAdmin && (!isAuthenticated || !isAdmin)) {
+      toast.error('Accès refusé: vous n\'avez pas les droits administrateur');
       navigate('/');
     }
   }, [isAuthenticated, isAdmin, isLoading, isCheckingAdmin, navigate]);
