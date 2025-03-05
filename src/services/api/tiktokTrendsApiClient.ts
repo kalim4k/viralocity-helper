@@ -1,181 +1,89 @@
 
-import { 
-  TikTokTrendingVideosResponse, 
+import {
+  TikTokTrendingVideosResponse,
   TikTokTrendingCreatorsResponse,
   TikTokTrendingSongsResponse,
   TikTokTrendingHashtagsResponse
 } from '@/types/tiktokTrends.types';
 
-// Configuration de l'API
-const API_CONFIG = {
-  apiKey: 'bd18f4b949msh6edd4e1d444b6a0p18d393jsnf0169527896e',
-  apiHost: 'tiktok-creative-center-api.p.rapidapi.com'
+const API_KEY = 'bd18f4b949msh6edd4e1d444b6a0p18d393jsnf0169527896e';
+const API_HOST = 'tiktok-creative-center-api.p.rapidapi.com';
+
+/**
+ * Options de base pour les requêtes API
+ */
+const baseOptions = {
+  method: 'GET',
+  headers: {
+    'x-rapidapi-key': API_KEY,
+    'x-rapidapi-host': API_HOST,
+  }
 };
 
 /**
- * Récupère les vidéos en tendance depuis l'API RapidAPI
- * @param country Code pays (ex: US, FR)
- * @param limit Nombre de résultats
- * @param page Numéro de page
+ * Récupère les vidéos en tendance
+ * @param country Code du pays (ex: US, FR)
  * @returns Promise avec les données de vidéos en tendance
  */
-export async function fetchTrendingVideos(
-  country: string = 'US', 
-  limit: number = 20, 
-  page: number = 1
-): Promise<TikTokTrendingVideosResponse> {
-  console.log(`API Trends: Fetching trending videos for country: ${country}`);
+export async function fetchTrendingVideos(country: string = 'US'): Promise<TikTokTrendingVideosResponse> {
+  const url = `https://${API_HOST}/api/trending/video?page=1&limit=20&period=30&order_by=vv&country=${country}`;
   
-  try {
-    const response = await fetch(
-      `https://${API_CONFIG.apiHost}/api/trending/video?page=${page}&limit=${limit}&period=30&order_by=vv&country=${country}`, 
-      {
-        method: 'GET',
-        headers: {
-          'x-rapidapi-host': API_CONFIG.apiHost,
-          'x-rapidapi-key': API_CONFIG.apiKey
-        }
-      }
-    );
-    
-    if (!response.ok) {
-      const statusCode = response.status;
-      console.error(`API responded with status: ${statusCode}`);
-      throw new Error(`Erreur lors de la récupération des tendances: ${statusCode}`);
-    }
-    
-    const result = await response.json();
-    console.log('Trending videos data received:', result);
-    
-    return result;
-  } catch (error) {
-    console.error('Error fetching trending videos:', error);
-    throw error;
+  const response = await fetch(url, baseOptions);
+  
+  if (!response.ok) {
+    throw new Error(`Erreur lors de la récupération des vidéos en tendance: ${response.status}`);
   }
+  
+  return await response.json();
 }
 
 /**
- * Récupère les créateurs en tendance depuis l'API RapidAPI
- * @param country Code pays (ex: US, FR)
- * @param limit Nombre de résultats
- * @param page Numéro de page
+ * Récupère les créateurs en tendance
+ * @param country Code du pays (ex: US, FR)
  * @returns Promise avec les données de créateurs en tendance
  */
-export async function fetchTrendingCreators(
-  country: string = 'US', 
-  limit: number = 20, 
-  page: number = 1
-): Promise<TikTokTrendingCreatorsResponse> {
-  console.log(`API Trends: Fetching trending creators for country: ${country}`);
+export async function fetchTrendingCreators(country: string = 'US'): Promise<TikTokTrendingCreatorsResponse> {
+  const url = `https://${API_HOST}/api/trending/creator?page=1&limit=20&sort_by=follower&country=${country}`;
   
-  try {
-    const response = await fetch(
-      `https://${API_CONFIG.apiHost}/api/trending/creator?page=${page}&limit=${limit}&sort_by=follower&country=${country}`, 
-      {
-        method: 'GET',
-        headers: {
-          'x-rapidapi-host': API_CONFIG.apiHost,
-          'x-rapidapi-key': API_CONFIG.apiKey
-        }
-      }
-    );
-    
-    if (!response.ok) {
-      const statusCode = response.status;
-      console.error(`API responded with status: ${statusCode}`);
-      throw new Error(`Erreur lors de la récupération des créateurs tendance: ${statusCode}`);
-    }
-    
-    const result = await response.json();
-    console.log('Trending creators data received:', result);
-    
-    return result;
-  } catch (error) {
-    console.error('Error fetching trending creators:', error);
-    throw error;
+  const response = await fetch(url, baseOptions);
+  
+  if (!response.ok) {
+    throw new Error(`Erreur lors de la récupération des créateurs en tendance: ${response.status}`);
   }
+  
+  return await response.json();
 }
 
 /**
- * Récupère les chansons en tendance depuis l'API RapidAPI
- * @param country Code pays (ex: US, FR)
- * @param limit Nombre de résultats
- * @param page Numéro de page
- * @returns Promise avec les données de chansons en tendance
+ * Récupère les sons en tendance
+ * @param country Code du pays (ex: US, FR)
+ * @returns Promise avec les données de sons en tendance
  */
-export async function fetchTrendingSongs(
-  country: string = 'US', 
-  limit: number = 20, 
-  page: number = 1
-): Promise<TikTokTrendingSongsResponse> {
-  console.log(`API Trends: Fetching trending songs for country: ${country}`);
+export async function fetchTrendingSongs(country: string = 'US'): Promise<TikTokTrendingSongsResponse> {
+  const url = `https://${API_HOST}/api/trending/song?page=1&limit=20&period=7&rank_type=popular&country=${country}`;
   
-  try {
-    const response = await fetch(
-      `https://${API_CONFIG.apiHost}/api/trending/song?page=${page}&limit=${limit}&period=7&rank_type=popular&country=${country}`, 
-      {
-        method: 'GET',
-        headers: {
-          'x-rapidapi-host': API_CONFIG.apiHost,
-          'x-rapidapi-key': API_CONFIG.apiKey
-        }
-      }
-    );
-    
-    if (!response.ok) {
-      const statusCode = response.status;
-      console.error(`API responded with status: ${statusCode}`);
-      throw new Error(`Erreur lors de la récupération des chansons tendance: ${statusCode}`);
-    }
-    
-    const result = await response.json();
-    console.log('Trending songs data received:', result);
-    
-    return result;
-  } catch (error) {
-    console.error('Error fetching trending songs:', error);
-    throw error;
+  const response = await fetch(url, baseOptions);
+  
+  if (!response.ok) {
+    throw new Error(`Erreur lors de la récupération des sons en tendance: ${response.status}`);
   }
+  
+  return await response.json();
 }
 
 /**
- * Récupère les hashtags en tendance depuis l'API RapidAPI
- * @param country Code pays (ex: US, FR)
- * @param limit Nombre de résultats
- * @param page Numéro de page
+ * Récupère les hashtags en tendance
+ * @param country Code du pays (ex: US, FR)
  * @returns Promise avec les données de hashtags en tendance
  */
-export async function fetchTrendingHashtags(
-  country: string = 'US', 
-  limit: number = 20, 
-  page: number = 1
-): Promise<TikTokTrendingHashtagsResponse> {
-  console.log(`API Trends: Fetching trending hashtags for country: ${country}`);
+export async function fetchTrendingHashtags(country: string = 'US'): Promise<TikTokTrendingHashtagsResponse> {
+  const url = `https://${API_HOST}/api/trending/hashtag?page=1&limit=20&period=120&country=${country}&sort_by=popular`;
   
-  try {
-    const response = await fetch(
-      `https://${API_CONFIG.apiHost}/api/trending/hashtag?page=${page}&limit=${limit}&period=120&country=${country}&sort_by=popular`, 
-      {
-        method: 'GET',
-        headers: {
-          'x-rapidapi-host': API_CONFIG.apiHost,
-          'x-rapidapi-key': API_CONFIG.apiKey
-        }
-      }
-    );
-    
-    if (!response.ok) {
-      const statusCode = response.status;
-      console.error(`API responded with status: ${statusCode}`);
-      throw new Error(`Erreur lors de la récupération des hashtags tendance: ${statusCode}`);
-    }
-    
-    const result = await response.json();
-    console.log('Trending hashtags data received:', result);
-    
-    return result;
-  } catch (error) {
-    console.error('Error fetching trending hashtags:', error);
-    throw error;
+  const response = await fetch(url, baseOptions);
+  
+  if (!response.ok) {
+    throw new Error(`Erreur lors de la récupération des hashtags en tendance: ${response.status}`);
   }
+  
+  return await response.json();
 }

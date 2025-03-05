@@ -149,5 +149,4 @@ export interface TikTokTrendingHashtagsResponse {
   }
 }
 
-// Types exportés pour l'usage dans les composants
-export { TrendingVideo, TrendingCreator, TrendingSong, TrendingHashtag };
+// Removing the conflicting export declaration that was causing issues

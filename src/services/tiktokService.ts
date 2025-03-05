@@ -1,7 +1,7 @@
 
-import { TikTokProfile } from '@/components/TikTokConnectModal';
+import { TikTokProfile } from '@/types/tiktok.types';
 import { fetchUserData } from './api/tiktokApiClient';
-import { mapToTikTokProfile } from './mappers/tiktokMapper';
+import { mapTikTokProfileData } from './mappers/tiktokMapper';
 
 /**
  * Fetch TikTok user profile information using RapidAPI
@@ -53,10 +53,10 @@ export async function fetchTikTokProfile(username: string): Promise<TikTokProfil
     }
     
     // Map the response to our application model
-    const profile = mapToTikTokProfile(result, cleanUsername);
+    const profile = mapTikTokProfileData(result);
     console.log('Service: Profile successfully mapped:', profile);
     
-    return profile;
+    return profile as TikTokProfile;
   } catch (error) {
     console.error('Error in TikTok service:', error);
     if (error instanceof Error) {

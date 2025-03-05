@@ -76,11 +76,13 @@ export function mapTikTokProfileData(rawData: any): TikTokProfile | null {
       nickname: userData.nickname || '',
       bio: userData.signature || '',
       avatarUrl: extractAvatarUrl(userData.avatarThumb || userData.avatar_thumb),
+      avatar: extractAvatarUrl(userData.avatarThumb || userData.avatar_thumb),
       verified: isVerified,
       following: Number(statsData.followingCount || statsData.following_count || 0),
       followers: followerCount,
       likes: heartCount,
-      videos: videoCount,
+      videos: [],
+      videoCount: videoCount,
       engagementRate: parseFloat(engagementRate.toFixed(2)),
       displayStats: {
         followers: formatNumber(followerCount),
@@ -120,10 +122,13 @@ export function mapTikTokVideosData(rawVideos: any[]): TikTokVideo[] {
         return {
           id: video.id || video.video_id || '',
           description: video.desc || video.description || '',
+          title: video.desc || video.description || '',
           createTime: video.create_time || Date.now() / 1000,
           coverUrl: coverUrl,
+          thumbnail: coverUrl,
           videoUrl: video.play || video.video_url || '',
           shareUrl: video.share_url || '',
+          views: Number(video.play_count || video.stats?.playCount || 0),
           stats: {
             commentCount: Number(video.comment_count || video.stats?.commentCount || 0),
             playCount: Number(video.play_count || video.stats?.playCount || 0),

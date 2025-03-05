@@ -1,6 +1,4 @@
 
-import { TikTokProfile } from '@/components/TikTokConnectModal';
-
 /**
  * RapidAPI Response structure for TikTok user data
  */
@@ -71,4 +69,58 @@ export interface TikTokProfileAnalysis {
   improvements: string[];
   recommendations: ProfileRecommendation[];
   optimizedBio: string;
+}
+
+/**
+ * TikTok user profile structure
+ */
+export interface TikTokProfile {
+  id: string;
+  uniqueId: string;
+  username?: string;
+  displayName?: string;
+  nickname?: string;
+  avatar: string;
+  avatarUrl?: string;
+  bio?: string;
+  verified?: boolean;
+  followers: number;
+  following?: number;
+  likes: number;
+  videoCount?: number;
+  engagementRate?: number;
+  displayStats?: {
+    followers: string;
+    following: string;
+    likes: string;
+    posts: string;
+  };
+  videos: TikTokVideo[];
+}
+
+/**
+ * TikTok video structure
+ */
+export interface TikTokVideo {
+  id: string;
+  description?: string;
+  title?: string;
+  createTime?: number;
+  coverUrl?: string;
+  thumbnail?: string;
+  videoUrl?: string;
+  shareUrl?: string;
+  views: number;
+  stats?: {
+    playCount?: number;
+    commentCount?: number;
+    shareCount?: number;
+    likeCount?: number;
+  };
+  displayStats?: {
+    comments?: string;
+    plays?: string;
+    shares?: string;
+    likes?: string;
+  };
 }
