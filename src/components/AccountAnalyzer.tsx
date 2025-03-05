@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, User, RefreshCw, CheckCircle, Hexagon, Zap, Sparkles } from 'lucide-react';
 import { fetchTikTokProfile } from '@/services/tiktokService';
@@ -8,6 +9,7 @@ import { toast } from 'sonner';
 import { formatNumber } from '@/utils/formatters';
 import { Progress } from '@/components/ui/progress';
 
+// Default detection points to show on the camera preview
 const DEFAULT_DETECTION_POINTS = [
   { x: 25, y: 30, label: 'Profil' },
   { x: 70, y: 40, label: 'Stats' },
@@ -28,7 +30,7 @@ export const AccountAnalyzer: React.FC = () => {
   const [showCamera, setShowCamera] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [captureInProgress, setCaptureInProgress] = useState(false);
-  const [detectionPoints, setDetectionPoints] = useState<{ x: number, y: number, label: string }[]>(DEFAULT_DETECTION_POINTS);
+  const [detectionPoints, setDetectionPoints] = useState<Array<{ x: number, y: number, label: string }>>(DEFAULT_DETECTION_POINTS);
   const [transitionOverlay, setTransitionOverlay] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,23 +40,29 @@ export const AccountAnalyzer: React.FC = () => {
   const detectionTimerRef = useRef<number | null>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const scanCompletionTimeoutRef = useRef<number | null>(null);
+  const scanBackupTimeoutRef = useRef<number | null>(null);
 
+  // Cleanup resources on component unmount
   useEffect(() => {
     return () => {
       cleanupResources();
     };
   }, []);
 
+  // Ensure we clean up all timers and camera streams
   const cleanupResources = () => {
     if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
     if (detectionTimerRef.current) window.clearInterval(detectionTimerRef.current);
     if (scanCompletionTimeoutRef.current) window.clearTimeout(scanCompletionTimeoutRef.current);
+    if (scanBackupTimeoutRef.current) window.clearTimeout(scanBackupTimeoutRef.current);
+    
     if (cameraStreamRef.current) {
       cameraStreamRef.current.getTracks().forEach(track => track.stop());
       cameraStreamRef.current = null;
     }
   };
 
+  // Handle file upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -63,13 +71,14 @@ export const AccountAnalyzer: React.FC = () => {
     reader.onload = (event) => {
       if (event.target?.result) {
         setImage(event.target.result as string);
-        setDetectionPoints(DEFAULT_DETECTION_POINTS);
+        setDetectionPoints([...DEFAULT_DETECTION_POINTS]); // Create a fresh copy
         startTransitionToScan();
       }
     };
     reader.readAsDataURL(file);
   };
 
+  // Initialize camera for capture
   const startCamera = async () => {
     try {
       setShowCamera(true);
@@ -92,7 +101,7 @@ export const AccountAnalyzer: React.FC = () => {
             if (videoRef.current) {
               videoRef.current.play().then(() => {
                 setIsCameraReady(true);
-                setDetectionPoints(DEFAULT_DETECTION_POINTS);
+                setDetectionPoints([...DEFAULT_DETECTION_POINTS]); // Create a fresh copy
               });
             }
           };
@@ -105,6 +114,7 @@ export const AccountAnalyzer: React.FC = () => {
     }
   };
 
+  // Capture photo from camera
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current || !cameraStreamRef.current || captureInProgress) {
       return;
@@ -127,7 +137,9 @@ export const AccountAnalyzer: React.FC = () => {
       
       setTransitionOverlay(true);
       setStep('capture-preview');
-      setDetectionPoints(DEFAULT_DETECTION_POINTS);
+      
+      // Create a copy of the detection points to avoid undefined references
+      setDetectionPoints([...DEFAULT_DETECTION_POINTS]);
       
       setTimeout(() => {
         startTransitionToScan();
@@ -138,9 +150,11 @@ export const AccountAnalyzer: React.FC = () => {
     }
   };
 
+  // Transition to scan screen
   const startTransitionToScan = () => {
     setScanProgress(0);
-    setDetectionPoints(DEFAULT_DETECTION_POINTS);
+    // Create a fresh copy of detection points
+    setDetectionPoints([...DEFAULT_DETECTION_POINTS]);
     
     setTimeout(() => {
       setTransitionOverlay(false);
@@ -148,6 +162,7 @@ export const AccountAnalyzer: React.FC = () => {
       setIsScanning(true);
       simulateScan();
       
+      // Only stop camera after transition is complete
       setTimeout(() => {
         if (cameraStreamRef.current) {
           cameraStreamRef.current.getTracks().forEach(track => track.stop());
@@ -159,20 +174,25 @@ export const AccountAnalyzer: React.FC = () => {
     }, 400);
   };
 
+  // Simulate the scanning process with visual feedback
   const simulateScan = () => {
     setIsScanning(true);
     setScanProgress(0);
     
+    // Clear any existing timers
     if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
     if (detectionTimerRef.current) window.clearInterval(detectionTimerRef.current);
     if (scanCompletionTimeoutRef.current) window.clearTimeout(scanCompletionTimeoutRef.current);
+    if (scanBackupTimeoutRef.current) window.clearTimeout(scanBackupTimeoutRef.current);
     
-    if (detectionPoints.length === 0) {
-      setDetectionPoints(DEFAULT_DETECTION_POINTS);
+    // Ensure we have our detection points
+    if (!detectionPoints || detectionPoints.length === 0) {
+      setDetectionPoints([...DEFAULT_DETECTION_POINTS]);
     }
     
+    // First backup - ensure scan completes after 15 seconds no matter what
     scanCompletionTimeoutRef.current = window.setTimeout(() => {
-      console.log("Backup timer forcing scan completion");
+      console.log("Primary backup timer forcing scan completion");
       setScanProgress(100);
       setIsScanning(false);
       
@@ -181,14 +201,28 @@ export const AccountAnalyzer: React.FC = () => {
       }, 1000);
     }, 15000);
     
+    // Second backup - ultra reliable fallback after 20 seconds
+    scanBackupTimeoutRef.current = window.setTimeout(() => {
+      console.log("Ultra-reliable backup timer forcing scan completion");
+      if (scanProgress < 100) {
+        setScanProgress(100);
+        setIsScanning(false);
+        setStep('username');
+      }
+    }, 20000);
+    
+    // Progress animation timer
     scanTimerRef.current = window.setInterval(() => {
       setScanProgress(prev => {
+        // Slow down as it approaches 100% to make it look more realistic
         const increment = prev < 70 ? 1.5 : 0.8;
         const newProgress = prev + increment;
         
         if (newProgress >= 100) {
+          // Clean up timer when done
           if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
           if (scanCompletionTimeoutRef.current) window.clearTimeout(scanCompletionTimeoutRef.current);
+          if (scanBackupTimeoutRef.current) window.clearTimeout(scanBackupTimeoutRef.current);
           
           setTimeout(() => {
             setIsScanning(false);
@@ -200,6 +234,7 @@ export const AccountAnalyzer: React.FC = () => {
       });
     }, 100);
     
+    // Additional detection points that appear during scan
     const additionalDetectionPoints = [
       { x: 25, y: 30, label: 'Avatar' },
       { x: 70, y: 25, label: 'Username' },
@@ -214,17 +249,25 @@ export const AccountAnalyzer: React.FC = () => {
       )
     );
     
+    // Detection points animation
     let index = 0;
     detectionTimerRef.current = window.setInterval(() => {
       if (index < additionalDetectionPoints.length) {
-        setDetectionPoints(prev => [...prev, additionalDetectionPoints[index]]);
+        setDetectionPoints(prev => {
+          // Always create a new array to avoid reference issues
+          const newPoints = [...prev];
+          newPoints.push(additionalDetectionPoints[index]);
+          return newPoints;
+        });
         index++;
       } else {
+        // Clean up when all points are added
         if (detectionTimerRef.current) window.clearInterval(detectionTimerRef.current);
       }
     }, 400);
   };
 
+  // Process TikTok profile analysis
   const analyzeProfile = async () => {
     if (!username) {
       toast.error("Veuillez entrer un nom d'utilisateur TikTok");
@@ -237,12 +280,15 @@ export const AccountAnalyzer: React.FC = () => {
     try {
       console.log(`Analyzing profile for username: ${username}`);
       
+      // Fetch profile data
       const profileData = await fetchTikTokProfile(username);
       console.log("Profile data fetched:", profileData);
       setProfile(profileData);
       
+      // Add a small delay to make the UI feel more responsive
       setTimeout(async () => {
         try {
+          // Analyze profile with Gemini
           const analysisResult = await analyzeTikTokProfile(profileData, image);
           console.log("Analysis result:", analysisResult);
           setAnalysis(analysisResult);
@@ -253,6 +299,7 @@ export const AccountAnalyzer: React.FC = () => {
           console.error('Erreur lors de l\'analyse Gemini:', analysisError);
           toast.error("Erreur d'analyse AI. Utilisation de données de secours.");
           
+          // Use fallback analysis if Gemini fails
           const fallbackAnalysis = await analyzeTikTokProfile(profileData, null);
           setAnalysis(fallbackAnalysis);
           setStep('analysis');
@@ -269,474 +316,491 @@ export const AccountAnalyzer: React.FC = () => {
     }
   };
 
-  return (
-    <div className="space-y-6">
-      {step === 'upload' && (
-        <section className="glass p-5 rounded-xl space-y-4">
-          <h2 className="text-lg font-semibold">Analysez un compte TikTok</h2>
-          
-          <p className="text-sm text-tva-text/70">
-            Prenez une photo de votre compte TikTok ou importez une capture d'écran pour une analyse complète.
-          </p>
-          
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            <button 
-              onClick={startCamera}
-              className="flex flex-col items-center justify-center p-4 bg-tva-surface hover:bg-tva-surface/80 rounded-xl transition-all"
-            >
-              <div className="bg-tva-primary/20 p-3 rounded-full mb-3">
-                <Camera size={24} className="text-tva-primary" />
-              </div>
-              <span className="text-sm font-medium">Prendre une photo</span>
-            </button>
-            
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center justify-center p-4 bg-tva-surface hover:bg-tva-surface/80 rounded-xl transition-all"
-            >
-              <div className="bg-tva-secondary/20 p-3 rounded-full mb-3">
-                <Upload size={24} className="text-tva-secondary" />
-              </div>
-              <span className="text-sm font-medium">Importer une image</span>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                accept="image/*" 
-                className="hidden" 
-              />
-            </button>
+  // Render upload screen
+  const renderUploadScreen = () => (
+    <section className="glass p-5 rounded-xl space-y-4">
+      <h2 className="text-lg font-semibold">Analysez un compte TikTok</h2>
+      
+      <p className="text-sm text-tva-text/70">
+        Prenez une photo de votre compte TikTok ou importez une capture d'écran pour une analyse complète.
+      </p>
+      
+      <div className="grid grid-cols-2 gap-3 mt-4">
+        <button 
+          onClick={startCamera}
+          className="flex flex-col items-center justify-center p-4 bg-tva-surface hover:bg-tva-surface/80 rounded-xl transition-all"
+        >
+          <div className="bg-tva-primary/20 p-3 rounded-full mb-3">
+            <Camera size={24} className="text-tva-primary" />
           </div>
-          
-          {showCamera && (
-            <div className={`mt-4 relative rounded-xl overflow-hidden transition-opacity duration-300 ${isCameraReady ? 'opacity-100' : 'opacity-0'}`}>
-              <video 
-                ref={videoRef} 
-                className="w-full rounded-lg"
-                muted
-                playsInline
-                autoPlay
-              />
-              <canvas ref={canvasRef} className="hidden" />
-              
-              {!isCameraReady && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                  <div className="w-10 h-10 border-4 border-tva-primary border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              )}
-              
-              <div className={`absolute inset-0 pointer-events-none border-2 border-tva-primary/50 z-10 transition-opacity duration-300 ${isCameraReady ? 'opacity-100' : 'opacity-0'}`}>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-[80%] h-[80%] border-2 border-tva-primary border-dashed rounded-md flex items-center justify-center animate-pulse">
-                    <div className="text-xs text-white bg-black/50 px-2 py-1 rounded">
-                      Centrez le profil TikTok
-                    </div>
-                  </div>
-                </div>
-                
-                {detectionPoints.map((point, idx) => (
-                  <div 
-                    key={idx} 
-                    className="absolute animate-fade-in"
-                    style={{
-                      left: `${point.x}%`,
-                      top: `${point.y}%`,
-                      transform: 'translate(-50%, -50%)',
-                      animationDelay: `${idx * 100}ms`
-                    }}
-                  >
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-tva-primary rounded-full"></div>
-                      <span className="text-[10px] bg-black/60 text-white px-1 rounded">
-                        {point.label}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-                
-                <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-tva-primary"></div>
-                <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-tva-primary"></div>
-                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-tva-primary"></div>
-                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-tva-primary"></div>
-              </div>
-              
-              <button
-                onClick={capturePhoto}
-                disabled={!isCameraReady || captureInProgress}
-                className={`absolute bottom-4 left-1/2 transform -translate-x-1/2 
-                  ${!isCameraReady || captureInProgress ? 'bg-white/60 text-tva-primary/60' : 'bg-white text-tva-primary'} 
-                  py-2 px-6 rounded-full font-medium flex items-center gap-2 shadow-lg transition-opacity duration-300
-                  ${isCameraReady ? 'opacity-100' : 'opacity-0'}`}
-              >
-                {captureInProgress ? (
-                  <>
-                    <RefreshCw size={18} className="animate-spin" />
-                    <span>Capture...</span>
-                  </>
-                ) : (
-                  <>
-                    <Camera size={18} />
-                    <span>Capturer</span>
-                  </>
-                )}
-              </button>
-            </div>
-          )}
-        </section>
+          <span className="text-sm font-medium">Prendre une photo</span>
+        </button>
+        
+        <button 
+          onClick={() => fileInputRef.current?.click()}
+          className="flex flex-col items-center justify-center p-4 bg-tva-surface hover:bg-tva-surface/80 rounded-xl transition-all"
+        >
+          <div className="bg-tva-secondary/20 p-3 rounded-full mb-3">
+            <Upload size={24} className="text-tva-secondary" />
+          </div>
+          <span className="text-sm font-medium">Importer une image</span>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            accept="image/*" 
+            className="hidden" 
+          />
+        </button>
+      </div>
+      
+      {showCamera && renderCameraView()}
+    </section>
+  );
+
+  // Render camera view for capture
+  const renderCameraView = () => (
+    <div className={`mt-4 relative rounded-xl overflow-hidden transition-opacity duration-300 ${isCameraReady ? 'opacity-100' : 'opacity-0'}`}>
+      <video 
+        ref={videoRef} 
+        className="w-full rounded-lg"
+        muted
+        playsInline
+        autoPlay
+      />
+      <canvas ref={canvasRef} className="hidden" />
+      
+      {!isCameraReady && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+          <div className="w-10 h-10 border-4 border-tva-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
       )}
       
-      {step === 'capture-preview' && (
-        <section className="glass p-6 rounded-xl space-y-6">
-          <div className="text-center">
-            <h2 className="text-lg font-semibold mb-2">Traitement en cours</h2>
-            <p className="text-sm text-tva-text/70">
-              Préparation de l'image pour analyse...
-            </p>
+      <div className={`absolute inset-0 pointer-events-none border-2 border-tva-primary/50 z-10 transition-opacity duration-300 ${isCameraReady ? 'opacity-100' : 'opacity-0'}`}>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-[80%] h-[80%] border-2 border-tva-primary border-dashed rounded-md flex items-center justify-center animate-pulse">
+            <div className="text-xs text-white bg-black/50 px-2 py-1 rounded">
+              Centrez le profil TikTok
+            </div>
           </div>
-          
-          <div className="relative">
-            {image && (
-              <div className="relative rounded-lg overflow-hidden">
-                <img src={image} alt="Capture" className="w-full" />
-                
-                {transitionOverlay && (
-                  <div className="absolute inset-0 bg-gradient-to-b from-tva-primary/10 to-tva-primary/20 backdrop-blur-[1px] animate-pulse flex items-center justify-center">
-                    <div className="bg-black/40 backdrop-blur-sm p-4 rounded-lg">
-                      <div className="flex flex-col items-center">
-                        <Sparkles size={20} className="text-tva-primary mb-2 animate-pulse" />
-                        <p className="text-white text-sm">Préparation de l'analyse</p>
-                      </div>
-                    </div>
+        </div>
+        
+        {detectionPoints.map((point, idx) => (
+          <div 
+            key={idx} 
+            className="absolute animate-fade-in"
+            style={{
+              left: `${point.x}%`,
+              top: `${point.y}%`,
+              transform: 'translate(-50%, -50%)',
+              animationDelay: `${idx * 100}ms`
+            }}
+          >
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-tva-primary rounded-full"></div>
+              <span className="text-[10px] bg-black/60 text-white px-1 rounded">
+                {point.label}
+              </span>
+            </div>
+          </div>
+        ))}
+        
+        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-tva-primary"></div>
+        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-tva-primary"></div>
+        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-tva-primary"></div>
+        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-tva-primary"></div>
+      </div>
+      
+      <button
+        onClick={capturePhoto}
+        disabled={!isCameraReady || captureInProgress}
+        className={`absolute bottom-4 left-1/2 transform -translate-x-1/2 
+          ${!isCameraReady || captureInProgress ? 'bg-white/60 text-tva-primary/60' : 'bg-white text-tva-primary'} 
+          py-2 px-6 rounded-full font-medium flex items-center gap-2 shadow-lg transition-opacity duration-300
+          ${isCameraReady ? 'opacity-100' : 'opacity-0'}`}
+      >
+        {captureInProgress ? (
+          <>
+            <RefreshCw size={18} className="animate-spin" />
+            <span>Capture...</span>
+          </>
+        ) : (
+          <>
+            <Camera size={18} />
+            <span>Capturer</span>
+          </>
+        )}
+      </button>
+    </div>
+  );
+
+  // Render capture preview screen
+  const renderCapturePreviewScreen = () => (
+    <section className="glass p-6 rounded-xl space-y-6">
+      <div className="text-center">
+        <h2 className="text-lg font-semibold mb-2">Traitement en cours</h2>
+        <p className="text-sm text-tva-text/70">
+          Préparation de l'image pour analyse...
+        </p>
+      </div>
+      
+      <div className="relative">
+        {image && (
+          <div className="relative rounded-lg overflow-hidden">
+            <img src={image} alt="Capture" className="w-full" />
+            
+            {transitionOverlay && (
+              <div className="absolute inset-0 bg-gradient-to-b from-tva-primary/10 to-tva-primary/20 backdrop-blur-[1px] animate-pulse flex items-center justify-center">
+                <div className="bg-black/40 backdrop-blur-sm p-4 rounded-lg">
+                  <div className="flex flex-col items-center">
+                    <Sparkles size={20} className="text-tva-primary mb-2 animate-pulse" />
+                    <p className="text-white text-sm">Préparation de l'analyse</p>
                   </div>
-                )}
-                
-                <div className="absolute inset-0">
-                  {detectionPoints.map((point, idx) => (
+                </div>
+              </div>
+            )}
+            
+            <div className="absolute inset-0">
+              {detectionPoints && detectionPoints.map((point, idx) => (
+                <div 
+                  key={idx} 
+                  className="absolute"
+                  style={{
+                    left: `${point.x}%`,
+                    top: `${point.y}%`,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                >
+                  <div className="relative">
+                    <Hexagon size={16} className="text-tva-primary/80 animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      
+      <div className="w-full flex justify-center">
+        <div className="w-8 h-8 border-4 border-tva-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    </section>
+  );
+
+  // Render scan screen
+  const renderScanScreen = () => (
+    <section className="glass p-6 rounded-xl space-y-6">
+      <div className="text-center">
+        <h2 className="text-lg font-semibold mb-2">Analyse en cours</h2>
+        <p className="text-sm text-tva-text/70">
+          Nous analysons votre image pour extraire les informations pertinentes...
+        </p>
+      </div>
+      
+      <div className="relative">
+        {image && (
+          <div className="relative rounded-lg overflow-hidden">
+            <img src={image} alt="Capture" className="w-full" />
+            
+            {isScanning && (
+              <div className="absolute inset-0 bg-gradient-to-b from-tva-primary/10 to-tva-primary/30 animate-pulse">
+                <div className="absolute inset-0 backdrop-blur-[1px]">
+                  <div className="absolute inset-0 backdrop-blur-[1px] opacity-30">
+                    {Array.from({ length: 20 }).map((_, i) => (
+                      <div 
+                        key={`h-${i}`} 
+                        className="absolute left-0 right-0 h-px bg-tva-primary/70"
+                        style={{ top: `${(i+1) * 5}%` }}
+                      ></div>
+                    ))}
+                    {Array.from({ length: 20 }).map((_, i) => (
+                      <div 
+                        key={`v-${i}`} 
+                        className="absolute top-0 bottom-0 w-px bg-tva-primary/70"
+                        style={{ left: `${(i+1) * 5}%` }}
+                      ></div>
+                    ))}
+                  </div>
+                  
+                  <div 
+                    className="absolute left-0 right-0 h-1 bg-tva-primary shadow-[0_0_15px_rgba(79,70,229,0.8)]"
+                    style={{ 
+                      top: `${scanProgress}%`,
+                      transition: 'top 0.5s ease-out'
+                    }}
+                  ></div>
+                  
+                  {detectionPoints && detectionPoints.map((point, idx) => (
                     <div 
                       key={idx} 
                       className="absolute"
                       style={{
                         left: `${point.x}%`,
                         top: `${point.y}%`,
-                        transform: 'translate(-50%, -50%)'
+                        transform: 'translate(-50%, -50%)',
+                        opacity: idx < 4 ? 1 : scanProgress > point.y ? 1 : 0.2,
+                        transition: 'opacity 0.3s ease-out'
                       }}
                     >
                       <div className="relative">
-                        <Hexagon size={16} className="text-tva-primary/80 animate-pulse" />
+                        <Hexagon size={20} className="text-tva-primary/80 animate-pulse" />
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 whitespace-nowrap">
+                          <span className="text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded-sm">
+                            {point.label}
+                          </span>
+                          <div className="h-4 w-4 absolute -top-3 left-1/2 transform -translate-x-1/2">
+                            <div className="h-full w-[1px] bg-tva-primary/50 mx-auto"></div>
+                          </div>
+                        </div>
                       </div>
+                      
+                      {Array.from({ length: 3 }).map((_, dotIdx) => {
+                        const angle = Math.random() * Math.PI * 2;
+                        const distance = 15 + Math.random() * 25;
+                        const x = Math.cos(angle) * distance;
+                        const y = Math.sin(angle) * distance;
+                        
+                        return (
+                          <div 
+                            key={`dot-${idx}-${dotIdx}`}
+                            className="absolute w-1 h-1 bg-tva-primary/70 rounded-full"
+                            style={{
+                              left: `${x}px`,
+                              top: `${y}px`,
+                              opacity: 0.4 + Math.random() * 0.6,
+                              animation: `pulse ${1 + Math.random()}s infinite`
+                            }}
+                          ></div>
+                        );
+                      })}
                     </div>
                   ))}
+                  
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+                    <div className="bg-black/50 backdrop-blur-sm p-3 rounded-lg flex flex-col items-center justify-center">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <Sparkles size={16} className="text-yellow-400 animate-pulse" />
+                        <span className="text-white font-medium">
+                          Analyse IA
+                        </span>
+                        <Sparkles size={16} className="text-yellow-400 animate-pulse" />
+                      </div>
+                      <div className="text-xs text-white/70">
+                        Extraction des données du profil
+                      </div>
+                      <div className="mt-2 text-xs font-mono text-white/90 flex items-center">
+                        <span className="text-tva-primary">{Math.floor(scanProgress)}</span>
+                        <span>% complété</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
           </div>
-          
-          <div className="w-full flex justify-center">
-            <div className="w-8 h-8 border-4 border-tva-primary border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        </section>
-      )}
+        )}
+      </div>
       
-      {step === 'scan' && (
-        <section className="glass p-6 rounded-xl space-y-6">
-          <div className="text-center">
-            <h2 className="text-lg font-semibold mb-2">Analyse en cours</h2>
-            <p className="text-sm text-tva-text/70">
-              Nous analysons votre image pour extraire les informations pertinentes...
-            </p>
-          </div>
-          
-          <div className="relative">
-            {image && (
-              <div className="relative rounded-lg overflow-hidden">
-                <img src={image} alt="Capture" className="w-full" />
-                
-                {isScanning && (
-                  <div className="absolute inset-0 bg-gradient-to-b from-tva-primary/10 to-tva-primary/30 animate-pulse">
-                    <div className="absolute inset-0 backdrop-blur-[1px]">
-                      <div className="absolute inset-0 backdrop-blur-[1px] opacity-30">
-                        {Array.from({ length: 20 }).map((_, i) => (
-                          <div 
-                            key={`h-${i}`} 
-                            className="absolute left-0 right-0 h-px bg-tva-primary/70"
-                            style={{ top: `${(i+1) * 5}%` }}
-                          ></div>
-                        ))}
-                        {Array.from({ length: 20 }).map((_, i) => (
-                          <div 
-                            key={`v-${i}`} 
-                            className="absolute top-0 bottom-0 w-px bg-tva-primary/70"
-                            style={{ left: `${(i+1) * 5}%` }}
-                          ></div>
-                        ))}
-                      </div>
-                      
-                      <div 
-                        className="absolute left-0 right-0 h-1 bg-tva-primary shadow-[0_0_15px_rgba(79,70,229,0.8)]"
-                        style={{ 
-                          top: `${scanProgress}%`,
-                          transition: 'top 0.5s ease-out'
-                        }}
-                      ></div>
-                      
-                      {detectionPoints.map((point, idx) => (
-                        <div 
-                          key={idx} 
-                          className="absolute"
-                          style={{
-                            left: `${point.x}%`,
-                            top: `${point.y}%`,
-                            transform: 'translate(-50%, -50%)',
-                            opacity: idx < 4 ? 1 : scanProgress > point.y ? 1 : 0.2,
-                            transition: 'opacity 0.3s ease-out'
-                          }}
-                        >
-                          <div className="relative">
-                            <Hexagon size={20} className="text-tva-primary/80 animate-pulse" />
-                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 whitespace-nowrap">
-                              <span className="text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded-sm">
-                                {point.label}
-                              </span>
-                              <div className="h-4 w-4 absolute -top-3 left-1/2 transform -translate-x-1/2">
-                                <div className="h-full w-[1px] bg-tva-primary/50 mx-auto"></div>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {Array.from({ length: 3 }).map((_, dotIdx) => {
-                            const angle = Math.random() * Math.PI * 2;
-                            const distance = 15 + Math.random() * 25;
-                            const x = Math.cos(angle) * distance;
-                            const y = Math.sin(angle) * distance;
-                            
-                            return (
-                              <div 
-                                key={`dot-${idx}-${dotIdx}`}
-                                className="absolute w-1 h-1 bg-tva-primary/70 rounded-full"
-                                style={{
-                                  left: `${x}px`,
-                                  top: `${y}px`,
-                                  opacity: 0.4 + Math.random() * 0.6,
-                                  animation: `pulse ${1 + Math.random()}s infinite`
-                                }}
-                              ></div>
-                            );
-                          })}
-                        </div>
-                      ))}
-                      
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-                        <div className="bg-black/50 backdrop-blur-sm p-3 rounded-lg flex flex-col items-center justify-center">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <Sparkles size={16} className="text-yellow-400 animate-pulse" />
-                            <span className="text-white font-medium">
-                              Analyse IA
-                            </span>
-                            <Sparkles size={16} className="text-yellow-400 animate-pulse" />
-                          </div>
-                          <div className="text-xs text-white/70">
-                            Extraction des données du profil
-                          </div>
-                          <div className="mt-2 text-xs font-mono text-white/90 flex items-center">
-                            <span className="text-tva-primary">{Math.floor(scanProgress)}</span>
-                            <span>% complété</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <span>Analyse d'image</span>
-              <span>{Math.floor(scanProgress)}%</span>
-            </div>
-            <Progress value={scanProgress} className="h-2" />
-          </div>
-          
-          <div className="space-y-1.5">
-            <div className="flex items-center text-xs">
-              <CheckCircle size={14} className={`mr-2 ${scanProgress > 20 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
-              <span className={scanProgress > 20 ? 'text-tva-text' : 'text-tva-text/50'}>Détection de l'interface TikTok</span>
-            </div>
-            <div className="flex items-center text-xs">
-              <CheckCircle size={14} className={`mr-2 ${scanProgress > 40 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
-              <span className={scanProgress > 40 ? 'text-tva-text' : 'text-tva-text/50'}>Extraction des éléments du profil</span>
-            </div>
-            <div className="flex items-center text-xs">
-              <CheckCircle size={14} className={`mr-2 ${scanProgress > 60 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
-              <span className={scanProgress > 60 ? 'text-tva-text' : 'text-tva-text/50'}>Analyse des métriques</span>
-            </div>
-            <div className="flex items-center text-xs">
-              <CheckCircle size={14} className={`mr-2 ${scanProgress > 80 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
-              <span className={scanProgress > 80 ? 'text-tva-text' : 'text-tva-text/50'}>Préparation des recommandations</span>
-            </div>
-            <div className="flex items-center text-xs">
-              <CheckCircle size={14} className={`mr-2 ${scanProgress >= 100 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
-              <span className={scanProgress >= 100 ? 'text-tva-text' : 'text-tva-text/50'}>Finalisation</span>
-            </div>
-          </div>
-        </section>
-      )}
+      <div className="space-y-2">
+        <div className="flex justify-between text-xs">
+          <span>Analyse d'image</span>
+          <span>{Math.floor(scanProgress)}%</span>
+        </div>
+        <Progress value={scanProgress} className="h-2" />
+      </div>
       
-      {step === 'username' && (
-        <section className="glass p-5 rounded-xl space-y-4">
-          <h2 className="text-lg font-semibold">Entrez votre nom d'utilisateur TikTok</h2>
-          
-          <p className="text-sm text-tva-text/70">
-            Pour compléter l'analyse, veuillez entrer votre nom d'utilisateur TikTok.
-          </p>
-          
-          {image && (
-            <div className="rounded-lg overflow-hidden mb-4">
-              <img src={image} alt="Capture d'écran" className="w-full" />
-            </div>
-          )}
-          
-          <div className="flex space-x-2">
-            <div className="flex-1 relative">
-              <User size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-tva-text/50" />
-              <input 
-                type="text" 
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Nom d'utilisateur (ex: mrbeast)" 
-                className="w-full bg-tva-surface/60 border border-tva-border rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-tva-primary text-black" 
-              />
-            </div>
-            <button 
-              onClick={analyzeProfile}
-              disabled={isAnalyzing || !username}
-              className={`${
-                isAnalyzing ? 'bg-tva-primary/70' : 'bg-tva-primary hover:bg-tva-primary/90'
-              } text-white py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center gap-2`}
-            >
-              {isAnalyzing ? (
-                <>
-                  <RefreshCw size={16} className="animate-spin" />
-                  <span>Analyse...</span>
-                </>
-              ) : (
-                <>
-                  <Zap size={16} />
-                  <span>Analyser</span>
-                </>
-              )}
-            </button>
-          </div>
-          
-          {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-              <p className="text-red-400 text-sm">{error}</p>
-            </div>
-          )}
-        </section>
-      )}
+      <div className="space-y-1.5">
+        <div className="flex items-center text-xs">
+          <CheckCircle size={14} className={`mr-2 ${scanProgress > 20 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
+          <span className={scanProgress > 20 ? 'text-tva-text' : 'text-tva-text/50'}>Détection de l'interface TikTok</span>
+        </div>
+        <div className="flex items-center text-xs">
+          <CheckCircle size={14} className={`mr-2 ${scanProgress > 40 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
+          <span className={scanProgress > 40 ? 'text-tva-text' : 'text-tva-text/50'}>Extraction des éléments du profil</span>
+        </div>
+        <div className="flex items-center text-xs">
+          <CheckCircle size={14} className={`mr-2 ${scanProgress > 60 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
+          <span className={scanProgress > 60 ? 'text-tva-text' : 'text-tva-text/50'}>Analyse des métriques</span>
+        </div>
+        <div className="flex items-center text-xs">
+          <CheckCircle size={14} className={`mr-2 ${scanProgress > 80 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
+          <span className={scanProgress > 80 ? 'text-tva-text' : 'text-tva-text/50'}>Préparation des recommandations</span>
+        </div>
+        <div className="flex items-center text-xs">
+          <CheckCircle size={14} className={`mr-2 ${scanProgress >= 100 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
+          <span className={scanProgress >= 100 ? 'text-tva-text' : 'text-tva-text/50'}>Finalisation</span>
+        </div>
+      </div>
+    </section>
+  );
+
+  // Render username input screen
+  const renderUsernameScreen = () => (
+    <section className="glass p-5 rounded-xl space-y-4">
+      <h2 className="text-lg font-semibold">Entrez votre nom d'utilisateur TikTok</h2>
       
-      {step === 'analysis' && profile && analysis && (
-        <div className="space-y-6 animate-slide-up">
-          <section className="glass p-4 rounded-xl">
-            <div className="flex items-start">
-              <img 
-                src={profile.avatar} 
-                alt={profile.displayName} 
-                className="w-16 h-16 rounded-full mr-4"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = 'https://placehold.co/100/3730a3/ffffff?text=Avatar';
-                }}
-              />
-              <div className="flex-1">
-                <div className="flex items-center">
-                  <h3 className="font-semibold">{profile.displayName}</h3>
-                  {profile.verified && (
-                    <span className="ml-1 bg-tva-primary/20 p-0.5 rounded-full">
-                      <svg className="w-3 h-3 text-tva-primary" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                      </svg>
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-tva-text/70">@{profile.username}</p>
-                <p className="text-sm mt-1">{profile.bio || 'Aucune bio.'}</p>
-                
-                <div className="flex space-x-4 mt-2">
-                  <div className="text-center">
-                    <p className="text-xs text-tva-text/70">Abonnés</p>
-                    <p className="font-semibold">{formatNumber(profile.followers)}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-tva-text/70">Abonnements</p>
-                    <p className="font-semibold">{formatNumber(profile.following || 0)}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-tva-text/70">Likes</p>
-                    <p className="font-semibold">{formatNumber(profile.likes)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-          
-          <section className="glass p-4 rounded-xl">
-            <h3 className="text-lg font-semibold mb-4">Analyse du profil</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-sm mb-2">Points forts</h4>
-                <ul className="space-y-1">
-                  {analysis.strengths.map((strength, index) => (
-                    <li key={index} className="text-sm text-tva-text/90 flex items-start">
-                      <span className="inline-block bg-tva-primary/20 text-tva-primary p-0.5 rounded mr-2 mt-0.5">
-                        <CheckCircle size={12} />
-                      </span>
-                      {strength}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              
-              <div>
-                <h4 className="font-medium text-sm mb-2">Améliorations possibles</h4>
-                <ul className="space-y-1">
-                  {analysis.improvements.map((improvement, index) => (
-                    <li key={index} className="text-sm text-tva-text/90 flex items-start">
-                      <span className="inline-block bg-yellow-500/20 text-yellow-500 p-0.5 rounded mr-2 mt-0.5">
-                        <RefreshCw size={12} />
-                      </span>
-                      {improvement}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </section>
-          
-          <section className="glass p-4 rounded-xl">
-            <h3 className="text-lg font-semibold mb-4">Recommandations</h3>
-            
-            <div className="space-y-3">
-              {analysis.recommendations.map((recommendation, index) => (
-                <div key={index} className="bg-tva-surface p-3 rounded-lg">
-                  <h4 className="font-medium text-sm mb-1">{recommendation.title}</h4>
-                  <p className="text-xs text-tva-text/70">{recommendation.description}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-          
-          <section className="glass p-4 rounded-xl">
-            <h3 className="text-lg font-semibold mb-4">Bio optimisée</h3>
-            <div className="bg-tva-surface p-3 rounded-lg">
-              <p className="text-sm">{analysis.optimizedBio}</p>
-            </div>
-          </section>
+      <p className="text-sm text-tva-text/70">
+        Pour compléter l'analyse, veuillez entrer votre nom d'utilisateur TikTok.
+      </p>
+      
+      {image && (
+        <div className="rounded-lg overflow-hidden mb-4">
+          <img src={image} alt="Capture d'écran" className="w-full" />
         </div>
       )}
+      
+      <div className="flex space-x-2">
+        <div className="flex-1 relative">
+          <User size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-tva-text/50" />
+          <input 
+            type="text" 
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Nom d'utilisateur (ex: mrbeast)" 
+            className="w-full bg-tva-surface/60 border border-tva-border rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-tva-primary text-black" 
+          />
+        </div>
+        <button 
+          onClick={analyzeProfile}
+          disabled={isAnalyzing || !username}
+          className={`${
+            isAnalyzing ? 'bg-tva-primary/70' : 'bg-tva-primary hover:bg-tva-primary/90'
+          } text-white py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center gap-2`}
+        >
+          {isAnalyzing ? (
+            <>
+              <RefreshCw size={16} className="animate-spin" />
+              <span>Analyse...</span>
+            </>
+          ) : (
+            <>
+              <Zap size={16} />
+              <span>Analyser</span>
+            </>
+          )}
+        </button>
+      </div>
+      
+      {error && (
+        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
+    </section>
+  );
+
+  // Render analysis results screen
+  const renderAnalysisScreen = () => (
+    profile && analysis ? (
+      <div className="space-y-6 animate-slide-up">
+        <section className="glass p-4 rounded-xl">
+          <div className="flex items-start">
+            <img 
+              src={profile.avatar} 
+              alt={profile.displayName} 
+              className="w-16 h-16 rounded-full mr-4"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = 'https://placehold.co/100/3730a3/ffffff?text=Avatar';
+              }}
+            />
+            <div className="flex-1">
+              <div className="flex items-center">
+                <h3 className="font-semibold">{profile.displayName}</h3>
+                {profile.verified && (
+                  <span className="ml-1 bg-tva-primary/20 p-0.5 rounded-full">
+                    <svg className="w-3 h-3 text-tva-primary" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                    </svg>
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-tva-text/70">@{profile.username}</p>
+              <p className="text-sm mt-1">{profile.bio || 'Aucune bio.'}</p>
+              
+              <div className="flex space-x-4 mt-2">
+                <div className="text-center">
+                  <p className="text-xs text-tva-text/70">Abonnés</p>
+                  <p className="font-semibold">{formatNumber(profile.followers)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-tva-text/70">Abonnements</p>
+                  <p className="font-semibold">{formatNumber(profile.following || 0)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-tva-text/70">Likes</p>
+                  <p className="font-semibold">{formatNumber(profile.likes)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        <section className="glass p-4 rounded-xl">
+          <h3 className="text-lg font-semibold mb-4">Analyse du profil</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-medium text-sm mb-2">Points forts</h4>
+              <ul className="space-y-1">
+                {analysis.strengths.map((strength, index) => (
+                  <li key={index} className="text-sm text-tva-text/90 flex items-start">
+                    <span className="inline-block bg-tva-primary/20 text-tva-primary p-0.5 rounded mr-2 mt-0.5">
+                      <CheckCircle size={12} />
+                    </span>
+                    {strength}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-medium text-sm mb-2">Améliorations possibles</h4>
+              <ul className="space-y-1">
+                {analysis.improvements.map((improvement, index) => (
+                  <li key={index} className="text-sm text-tva-text/90 flex items-start">
+                    <span className="inline-block bg-yellow-500/20 text-yellow-500 p-0.5 rounded mr-2 mt-0.5">
+                      <RefreshCw size={12} />
+                    </span>
+                    {improvement}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+        
+        <section className="glass p-4 rounded-xl">
+          <h3 className="text-lg font-semibold mb-4">Recommandations</h3>
+          
+          <div className="space-y-3">
+            {analysis.recommendations.map((recommendation, index) => (
+              <div key={index} className="bg-tva-surface p-3 rounded-lg">
+                <h4 className="font-medium text-sm mb-1">{recommendation.title}</h4>
+                <p className="text-xs text-tva-text/70">{recommendation.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+        
+        <section className="glass p-4 rounded-xl">
+          <h3 className="text-lg font-semibold mb-4">Bio optimisée</h3>
+          <div className="bg-tva-surface p-3 rounded-lg">
+            <p className="text-sm">{analysis.optimizedBio}</p>
+          </div>
+        </section>
+      </div>
+    ) : null
+  );
+
+  // Render the appropriate screen based on current step
+  return (
+    <div className="space-y-6">
+      {step === 'upload' && renderUploadScreen()}
+      {step === 'capture-preview' && renderCapturePreviewScreen()}
+      {step === 'scan' && renderScanScreen()}
+      {step === 'username' && renderUsernameScreen()}
+      {step === 'analysis' && renderAnalysisScreen()}
     </div>
   );
 };
