@@ -1,17 +1,32 @@
 
-import React, { useState } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { SignupForm } from "@/components/SignupForm";
+import { ForgotPasswordForm } from "@/components/ForgotPasswordForm";
+import { ResetPasswordForm } from "@/components/ResetPasswordForm";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/AppLayout";
 
 const Auth = () => {
   const { isAuthenticated, isLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState("login");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => {
+    // Check if the URL has a 'tab' parameter for reset-password
+    const tabParam = searchParams.get("tab");
+    return tabParam === "reset-password" ? "reset-password" : "login";
+  });
   const navigate = useNavigate();
+
+  // Update active tab when URL parameters change
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "reset-password") {
+      setActiveTab("reset-password");
+    }
+  }, [searchParams]);
 
   // Redirect if already authenticated
   if (isAuthenticated && !isLoading) {
@@ -24,12 +39,16 @@ const Auth = () => {
         <div className="glass w-full max-w-lg p-8 rounded-2xl">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold">
-              {activeTab === "login" ? "Connexion" : "Inscription"}
+              {activeTab === "login" && "Connexion"}
+              {activeTab === "signup" && "Inscription"}
+              {activeTab === "forgot-password" && "Mot de passe oublié"}
+              {activeTab === "reset-password" && "Réinitialisation du mot de passe"}
             </h1>
             <p className="text-tva-text/70 mt-2">
-              {activeTab === "login"
-                ? "Connectez-vous pour accéder à votre compte"
-                : "Créez un compte pour profiter de toutes les fonctionnalités"}
+              {activeTab === "login" && "Connectez-vous pour accéder à votre compte"}
+              {activeTab === "signup" && "Créez un compte pour profiter de toutes les fonctionnalités"}
+              {activeTab === "forgot-password" && "Saisissez votre email pour recevoir un lien de réinitialisation"}
+              {activeTab === "reset-password" && "Créez un nouveau mot de passe sécurisé"}
             </p>
           </div>
 
@@ -38,14 +57,21 @@ const Auth = () => {
             onValueChange={setActiveTab}
             className="w-full"
           >
-            <TabsList className="grid grid-cols-2 mb-6">
-              <TabsTrigger value="login">Connexion</TabsTrigger>
-              <TabsTrigger value="signup">Inscription</TabsTrigger>
+            <TabsList className={`grid ${activeTab === "reset-password" ? "hidden" : activeTab === "forgot-password" ? "grid-cols-1" : "grid-cols-2"} mb-6`}>
+              {activeTab !== "forgot-password" && activeTab !== "reset-password" && (
+                <>
+                  <TabsTrigger value="login">Connexion</TabsTrigger>
+                  <TabsTrigger value="signup">Inscription</TabsTrigger>
+                </>
+              )}
+              {activeTab === "forgot-password" && (
+                <TabsTrigger value="forgot-password">Mot de passe oublié</TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="login" className="mt-0">
               <LoginForm />
-              <div className="text-center mt-4">
+              <div className="flex flex-col space-y-4 text-center mt-4">
                 <p className="text-sm text-tva-text/70">
                   Vous n'avez pas de compte?{" "}
                   <Button
@@ -54,6 +80,15 @@ const Auth = () => {
                     onClick={() => setActiveTab("signup")}
                   >
                     S'inscrire
+                  </Button>
+                </p>
+                <p className="text-sm text-tva-text/70">
+                  <Button
+                    variant="link"
+                    className="p-0 h-auto"
+                    onClick={() => setActiveTab("forgot-password")}
+                  >
+                    Mot de passe oublié?
                   </Button>
                 </p>
               </div>
@@ -73,6 +108,25 @@ const Auth = () => {
                   </Button>
                 </p>
               </div>
+            </TabsContent>
+
+            <TabsContent value="forgot-password" className="mt-0">
+              <ForgotPasswordForm />
+              <div className="text-center mt-4">
+                <p className="text-sm text-tva-text/70">
+                  <Button
+                    variant="link"
+                    className="p-0 h-auto"
+                    onClick={() => setActiveTab("login")}
+                  >
+                    Retour à la connexion
+                  </Button>
+                </p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="reset-password" className="mt-0">
+              <ResetPasswordForm />
             </TabsContent>
           </Tabs>
         </div>

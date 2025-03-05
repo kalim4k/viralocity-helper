@@ -6,7 +6,7 @@ import { useLicense } from '@/contexts/LicenseContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LogOut, Mail, User, TrendingUp, Key } from 'lucide-react';
-import { signOut } from '@/services/authService';
+import { signOut, updatePassword } from '@/services/authService';
 import { getUserTikTokAccounts } from '@/services/tiktokAccountService';
 import { TikTokProfile } from '@/types/tiktok.types';
 import { LicenseStatus } from '@/components/LicenseStatus';
@@ -28,6 +28,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -58,6 +66,12 @@ const ProfilePage = () => {
   const [licenseKey, setLicenseKey] = useState('');
   const [isActivatingLicense, setIsActivatingLicense] = useState(false);
   const [activationError, setActivationError] = useState<string | null>(null);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwords, setPasswords] = useState({
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -122,6 +136,40 @@ const ProfilePage = () => {
     }
   };
 
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswords({
+      ...passwords,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleUpdatePassword = async () => {
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      toast.error("Les mots de passe ne correspondent pas");
+      return;
+    }
+
+    if (passwords.newPassword.length < 6) {
+      toast.error("Le mot de passe doit contenir au moins 6 caractères");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    
+    const { error } = await updatePassword(passwords.newPassword);
+    
+    setIsChangingPassword(false);
+    
+    if (!error) {
+      toast.success("Mot de passe mis à jour avec succès");
+      setShowPasswordDialog(false);
+      setPasswords({
+        newPassword: "",
+        confirmPassword: "",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -142,10 +190,8 @@ const ProfilePage = () => {
           </p>
         </section>
 
-        {/* License Status */}
         <LicenseStatus />
 
-        {/* License Activation (only shown if no license) */}
         {!hasLicense && (
           <Card className="glass">
             <CardHeader>
@@ -214,6 +260,13 @@ const ProfilePage = () => {
                 <span className="font-medium">{user.user_metadata.username}</span>
               </div>
             )}
+            <Button 
+              variant="outline" 
+              onClick={() => setShowPasswordDialog(true)}
+              className="mt-2"
+            >
+              Changer de mot de passe
+            </Button>
           </CardContent>
           <CardFooter>
             <Button 
@@ -297,6 +350,59 @@ const ProfilePage = () => {
           </CardFooter>
         </Card>
       </div>
+
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="glass">
+          <DialogHeader>
+            <DialogTitle>Changer de mot de passe</DialogTitle>
+            <DialogDescription>
+              Créez un nouveau mot de passe sécurisé pour votre compte.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="newPassword" className="text-sm font-medium">
+                Nouveau mot de passe
+              </label>
+              <Input
+                id="newPassword"
+                name="newPassword"
+                type="password"
+                value={passwords.newPassword}
+                onChange={handlePasswordChange}
+                placeholder="********"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="confirmPassword" className="text-sm font-medium">
+                Confirmer le mot de passe
+              </label>
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                value={passwords.confirmPassword}
+                onChange={handlePasswordChange}
+                placeholder="********"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowPasswordDialog(false)}
+            >
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleUpdatePassword}
+              disabled={isChangingPassword}
+            >
+              {isChangingPassword ? "Mise à jour..." : "Mettre à jour"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={showConfirmLogout} onOpenChange={setShowConfirmLogout}>
         <AlertDialogContent className="glass">

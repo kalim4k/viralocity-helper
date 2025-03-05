@@ -61,3 +61,33 @@ export const getCurrentUser = async () => {
     return { data: null, error };
   }
 };
+
+export const resetPassword = async (email: string) => {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth?tab=reset-password`,
+    });
+    
+    if (error) throw error;
+    return { error: null };
+  } catch (error: any) {
+    console.error("Error resetting password:", error);
+    toast.error(`Erreur lors de la réinitialisation du mot de passe: ${error.message}`);
+    return { error };
+  }
+};
+
+export const updatePassword = async (newPassword: string) => {
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    
+    if (error) throw error;
+    return { error: null };
+  } catch (error: any) {
+    console.error("Error updating password:", error);
+    toast.error(`Erreur lors de la mise à jour du mot de passe: ${error.message}`);
+    return { error };
+  }
+};
