@@ -7,6 +7,10 @@ import { RapidAPIResponse, TikTokProfile, TikTokVideo } from '@/types/tiktok.typ
  * @returns TikTokProfile object
  */
 export const mapTikTokProfileData = (data: RapidAPIResponse): TikTokProfile => {
+  if (!data.data || !data.data.owner || !data.data.owner.user_info) {
+    throw new Error('Invalid API response format');
+  }
+  
   const userInfo = data.data.owner.user_info;
   const itemList = data.data.itemList || [];
   
@@ -36,15 +40,15 @@ export const mapTikTokProfileData = (data: RapidAPIResponse): TikTokProfile => {
     id: userInfo.uid,
     uniqueId: userInfo.unique_id,
     username: userInfo.unique_id, // Ensure username is always provided
-    displayName: userInfo.nickname, // Ensure displayName is always provided
     nickname: userInfo.nickname,
+    displayName: userInfo.nickname, // Ensure displayName is always provided
     avatar: userInfo.avatar_thumb.url_list[0] || '',
     followers: userInfo.follower_count,
     likes: userInfo.total_favorited || userInfo.heart || userInfo.heartCount || 0,
     videos: videos,
     displayStats: {
       followers: formatNumber(userInfo.follower_count),
-      following: '0', // Default value since API doesn't provide this
+      following: formatNumber(userInfo.following_count || 0),
       likes: formatNumber(userInfo.total_favorited || userInfo.heart || userInfo.heartCount || 0),
       posts: formatNumber(videos.length)
     }

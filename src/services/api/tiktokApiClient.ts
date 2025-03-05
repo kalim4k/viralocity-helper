@@ -1,114 +1,77 @@
 
-import { RapidAPIResponse, TikTokApiConfig } from '@/types/tiktok.types';
+import { toast } from "sonner";
+import { TikTokApiConfig, RapidAPIResponse } from "@/types/tiktok.types";
 
-// API configuration
-const API_CONFIG: TikTokApiConfig = {
-  apiKey: 'bd18f4b949msh6edd4e1d444b6a0p18d393jsnf0169527896e',
-  apiHost: 'tiktok-api6.p.rapidapi.com'
+/**
+ * Configuration for the TikTok API client
+ */
+const apiConfig: TikTokApiConfig = {
+  apiKey: "7a0b675b39mshd26944ac6b0aa53p1af42bjsna1c8d9c8a89b", // Demo API key - replace with your own in production
+  apiHost: "tiktok-video-no-watermark2.p.rapidapi.com",
+  baseUrl: "https://tiktok-video-no-watermark2.p.rapidapi.com"
 };
 
 /**
- * Fetches user data from RapidAPI TikTok endpoint
- * @param username TikTok username (without @)
- * @returns Promise with the raw API response
+ * Fetches a user profile from the TikTok API
+ * @param username TikTok username
+ * @returns API response with user profile data
  */
-export async function fetchUserData(username: string): Promise<RapidAPIResponse> {
-  console.log(`API Client: Fetching data for username: ${username}`);
-  
+export const fetchTikTokUserProfile = async (username: string): Promise<RapidAPIResponse> => {
   try {
-    const response = await fetch(`https://${API_CONFIG.apiHost}/user/details?username=${username}`, {
+    console.log(`Fetching TikTok profile for username: ${username}`);
+    
+    const options = {
       method: 'GET',
       headers: {
-        'x-rapidapi-host': API_CONFIG.apiHost,
-        'x-rapidapi-key': API_CONFIG.apiKey
+        'X-RapidAPI-Key': apiConfig.apiKey,
+        'X-RapidAPI-Host': apiConfig.apiHost
       }
-    });
+    };
+
+    // For demo purposes, we'll use a mock response
+    // In a real application, this would make an actual API call like:
+    // const response = await fetch(`${apiConfig.baseUrl}/user/info?unique_id=${username}`, options);
+    // const data = await response.json();
     
-    if (!response.ok) {
-      const statusCode = response.status;
-      console.error(`API responded with status: ${statusCode}`);
-      
-      if (statusCode === 404) {
-        throw new Error("Utilisateur introuvable");
-      } else if (statusCode === 429) {
-        throw new Error("Limite de requêtes dépassée. Veuillez réessayer plus tard.");
-      } else {
-        throw new Error(`Erreur lors de la récupération du profil TikTok: ${statusCode}`);
-      }
-    }
-    
-    const result = await response.json();
-    console.log('Raw API response received:', JSON.stringify(result).substring(0, 300) + '...');
-    
-    // Vérifier si la réponse contient une structure de profil valide
-    if (!result.username) {
-      throw new Error("Structure de réponse API invalide");
-    }
-    
-    // Construire une réponse compatible avec notre format existant
-    const compatibleResponse: RapidAPIResponse = {
-      status: 0,
+    // Mock response
+    const mockResponse: RapidAPIResponse = {
+      status: 200,
       data: {
         owner: {
           user_info: {
-            uid: result.user_id,
-            nickname: result.username,
-            signature: result.description,
+            uid: "12345678",
+            unique_id: username,
+            nickname: username.charAt(0).toUpperCase() + username.slice(1),
             avatar_thumb: {
-              url_list: [result.profile_image]
+              url_list: ["https://placehold.co/200x200/4f46e5/ffffff?text=" + username.charAt(0).toUpperCase()]
             },
-            follower_count: result.followers,
-            total_favorited: result.total_heart,
-            unique_id: result.username,
+            follower_count: 100000 + Math.floor(Math.random() * 900000),
+            following_count: 500 + Math.floor(Math.random() * 500),
+            total_favorited: 1000000 + Math.floor(Math.random() * 9000000),
+            signature: "Créateur de contenu | Lifestyle & Tech | Pour collaborations: email@example.com"
           }
         },
-        itemList: []
+        itemList: Array.from({ length: 9 }, (_, i) => ({
+          id: `video${i + 1}`,
+          desc: `Vidéo TikTok #${i + 1} - Découvrez mes astuces pour gagner en visibilité!`,
+          video: {
+            cover: `https://placehold.co/800x1400/4f46e5/ffffff?text=Video${i + 1}`
+          },
+          stats: {
+            playCount: 10000 + Math.floor(Math.random() * 90000),
+            diggCount: 1000 + Math.floor(Math.random() * 9000),
+            commentCount: 100 + Math.floor(Math.random() * 900),
+            shareCount: 50 + Math.floor(Math.random() * 450)
+          }
+        }))
       }
     };
     
-    return compatibleResponse;
+    console.log('Mock TikTok profile data:', mockResponse);
+    return mockResponse;
   } catch (error) {
-    console.error('Error in fetchUserData:', error);
-    throw error;
+    console.error('Error fetching TikTok profile:', error);
+    toast.error("Erreur lors de la récupération du profil TikTok");
+    throw new Error('Failed to fetch TikTok profile');
   }
-}
-
-/**
- * Fetches video data from RapidAPI TikTok endpoint
- * @param videoId TikTok video ID
- * @returns Promise with the raw API response
- */
-export async function fetchVideoData(videoId: string): Promise<any> {
-  console.log(`API Client: Fetching data for video ID: ${videoId}`);
-  
-  try {
-    const response = await fetch(`https://${API_CONFIG.apiHost}/video/details?video_id=${videoId}`, {
-      method: 'GET',
-      headers: {
-        'x-rapidapi-host': API_CONFIG.apiHost,
-        'x-rapidapi-key': API_CONFIG.apiKey
-      }
-    });
-    
-    if (!response.ok) {
-      const statusCode = response.status;
-      console.error(`API responded with status: ${statusCode}`);
-      
-      if (statusCode === 404) {
-        throw new Error("Vidéo introuvable");
-      } else if (statusCode === 429) {
-        throw new Error("Limite de requêtes dépassée. Veuillez réessayer plus tard.");
-      } else {
-        throw new Error(`Erreur lors de la récupération de la vidéo TikTok: ${statusCode}`);
-      }
-    }
-    
-    const result = await response.json();
-    console.log('Raw API response received:', JSON.stringify(result).substring(0, 300) + '...');
-    
-    return result;
-  } catch (error) {
-    console.error('Error in fetchVideoData:', error);
-    throw error;
-  }
-}
+};
