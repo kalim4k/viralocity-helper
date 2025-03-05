@@ -7,11 +7,13 @@ import { RapidAPIResponse, TikTokProfile, TikTokVideo } from '@/types/tiktok.typ
  * @returns TikTokProfile object
  */
 export const mapTikTokProfileData = (data: RapidAPIResponse): TikTokProfile => {
-  if (!data.data || !data.data.owner || !data.data.owner.user_info) {
+  if (!data.data || !data.data.itemList || !data.data.itemList[0] || !data.data.itemList[0].author) {
     throw new Error('Invalid API response format');
   }
   
-  const userInfo = data.data.owner.user_info;
+  // Get author data from the first video
+  const authorData = data.data.itemList[0].author;
+  const authorStats = data.data.itemList[0].authorStats;
   const itemList = data.data.itemList || [];
   
   // Map videos from the API response
@@ -20,7 +22,14 @@ export const mapTikTokProfileData = (data: RapidAPIResponse): TikTokProfile => {
     title: item.desc || 'Sans titre', // Ensure title is always provided
     description: item.desc,
     thumbnail: item.video.cover,
+    coverUrl: item.video.dynamicCover,
+    playUrl: item.video.playAddr,
     views: item.stats.playCount,
+    likeCount: item.stats.diggCount,
+    commentCount: item.stats.commentCount,
+    shareCount: item.stats.shareCount,
+    createTime: new Date(item.createTime * 1000).toISOString(),
+    duration: item.video.duration,
     stats: {
       playCount: item.stats.playCount,
       likeCount: item.stats.diggCount,
@@ -37,26 +46,29 @@ export const mapTikTokProfileData = (data: RapidAPIResponse): TikTokProfile => {
 
   // Build the TikTokProfile object
   const profile: TikTokProfile = {
-    id: userInfo.uid,
-    uniqueId: userInfo.unique_id,
-    username: userInfo.unique_id, // Ensure username is always provided
-    nickname: userInfo.nickname,
-    displayName: userInfo.nickname, // Ensure displayName is always provided
-    avatar: userInfo.avatar_thumb.url_list[0] || '',
-    followers: userInfo.follower_count,
-    likes: userInfo.total_favorited || userInfo.heart || userInfo.heartCount || 0,
+    id: authorData.id,
+    uniqueId: authorData.uniqueId,
+    username: authorData.uniqueId, // Ensure username is always provided
+    nickname: authorData.nickname,
+    displayName: authorData.nickname, // Ensure displayName is always provided
+    avatar: authorData.avatarMedium,
+    followers: authorStats.followerCount,
+    following: authorStats.followingCount,
+    likes: authorStats.heartCount,
+    videoCount: authorStats.videoCount,
     videos: videos,
+    verified: authorData.verified,
     displayStats: {
-      followers: formatNumber(userInfo.follower_count),
-      following: formatNumber(userInfo.following_count || 0),
-      likes: formatNumber(userInfo.total_favorited || userInfo.heart || userInfo.heartCount || 0),
-      posts: formatNumber(videos.length)
+      followers: formatNumber(authorStats.followerCount),
+      following: formatNumber(authorStats.followingCount),
+      likes: formatNumber(authorStats.heartCount),
+      posts: formatNumber(authorStats.videoCount)
     }
   };
 
   // If bio/signature is provided, add it to the profile
-  if (userInfo.signature) {
-    profile.bio = userInfo.signature;
+  if (authorData.signature) {
+    profile.bio = authorData.signature;
   }
 
   return profile;

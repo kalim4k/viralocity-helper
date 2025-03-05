@@ -5,7 +5,7 @@ import { mapTikTokProfileData } from './mappers/tiktokMapper';
 
 // API configuration
 const API_KEY = 'bd18f4b949msh6edd4e1d444b6a0p18d393jsnf0169527896e';
-const API_HOST = 'tiktok-scraper-api-zt7j.p.rapidapi.com';
+const API_HOST = 'tiktok-user.p.rapidapi.com';
 
 /**
  * Fetches a TikTok profile by username
@@ -16,7 +16,7 @@ export const fetchTikTokProfile = async (username) => {
   console.log(`Fetching TikTok profile for username: ${username}`);
   
   try {
-    const url = `https://${API_HOST}/user/get?username=${username}`;
+    const url = `https://${API_HOST}/getuser/${username}`;
     
     const response = await fetch(url, {
       method: 'GET',
@@ -34,7 +34,7 @@ export const fetchTikTokProfile = async (username) => {
     
     const data: RapidAPIResponse = await response.json();
     
-    if (data.status !== 0) {
+    if (data.status !== 200) {
       console.error('API returned error status:', data);
       throw new Error(`Erreur: ${JSON.stringify(data)}`);
     }

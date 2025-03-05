@@ -52,14 +52,50 @@ export interface TikTokVideo {
 export interface RapidAPIResponse {
   status: number;
   statusText?: string;
+  data?: {
+    cursor?: string;
+    hasMore?: boolean;
+    itemList?: Array<{
+      id: string;
+      desc: string;
+      createTime: number;
+      author: {
+        id: string;
+        uniqueId: string;
+        nickname: string;
+        avatarThumb: string;
+        avatarMedium: string;
+        avatarLarger: string;
+        signature: string;
+        verified: boolean;
+        secUid: string;
+      };
+      authorStats: {
+        followerCount: number;
+        followingCount: number;
+        heartCount: number;
+        videoCount: number;
+        diggCount: number;
+      };
+      stats: {
+        playCount: number;
+        diggCount: number;
+        commentCount: number;
+        shareCount: number;
+      };
+      video: {
+        id: string;
+        cover: string;
+        playAddr: string;
+        dynamicCover: string;
+        duration: number;
+        width: number;
+        height: number;
+      };
+    }>;
+  };
   userInfo?: any;
   items?: any[];
-  data?: {
-    owner?: {
-      user_info?: any;
-    };
-    itemList?: any[];
-  };
 }
 
 export interface TikTokApiConfig {
