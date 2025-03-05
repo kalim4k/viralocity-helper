@@ -21,19 +21,18 @@ const AdminLicensesPage = () => {
       }
 
       try {
-        // Check directly if the user exists in the admin_users table
-        const { data, error } = await supabase
-          .from('admin_users')
-          .select('is_admin')
-          .eq('id', user.id)
-          .maybeSingle();
+        // Use the RPC function call instead of direct table access
+        // This avoids the RLS policy issues since the function is SECURITY DEFINER
+        const { data, error } = await supabase.rpc('is_admin', {
+          user_id: user.id
+        });
         
         if (error) {
           console.error('Error checking admin status:', error);
           toast.error('Erreur lors de la vérification des droits administrateur');
           setIsAdmin(false);
         } else {
-          setIsAdmin(data?.is_admin || false);
+          setIsAdmin(!!data);
         }
       } catch (error) {
         console.error('Error checking admin status:', error);
