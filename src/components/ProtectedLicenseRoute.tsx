@@ -17,21 +17,21 @@ export const ProtectedLicenseRoute: React.FC<ProtectedLicenseRouteProps> = ({ ch
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      // Explicitly refresh license status when route is mounted
+      // Rafraîchir explicitement le statut de la licence lorsque le composant est monté
       refreshLicenseStatus().catch(err => {
-        console.error("Error refreshing license status:", err);
+        console.error("Erreur lors du rafraîchissement du statut de la licence:", err);
       });
     }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, refreshLicenseStatus]);
 
   useEffect(() => {
-    // When auth and license checks are complete, mark access checking as done
+    // Lorsque les vérifications d'authentification et de licence sont terminées, marquer la vérification d'accès comme terminée
     if (!isLoading && !isLoadingLicense) {
       setIsCheckingAccess(false);
     }
   }, [isLoading, isLoadingLicense]);
 
-  // Check if we're still loading auth or license status
+  // Vérifier si nous chargeons toujours le statut d'authentification ou de licence
   if (isLoading || isLoadingLicense || isCheckingAccess) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -40,17 +40,17 @@ export const ProtectedLicenseRoute: React.FC<ProtectedLicenseRouteProps> = ({ ch
     );
   }
 
-  // Redirect to login if not authenticated
+  // Rediriger vers la page de connexion si non authentifié
   if (!isAuthenticated) {
     toast.error("Veuillez vous connecter pour accéder à cette page");
     return <Navigate to="/auth" replace />;
   }
 
-  // Show license required page if authenticated but no license
+  // Afficher la page de licence requise si authentifié mais sans licence
   if (!hasLicense) {
     return <LicenseRequired />;
   }
 
-  // User is authenticated and has license, show protected content
+  // L'utilisateur est authentifié et a une licence, afficher le contenu protégé
   return <>{children}</>;
 };

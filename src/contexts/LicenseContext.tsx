@@ -44,7 +44,7 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setIsLoadingLicense(true);
       
-      // Utilisation d'une requête directe
+      // Requête simplifiée pour vérifier la licence active de l'utilisateur
       const { data, error } = await supabase
         .from('licenses')
         .select('license_key, status, expires_at')
@@ -74,7 +74,7 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  // Simplified license activation function
+  // Activation de licence simplifiée et plus robuste
   const activateLicense = async (key: string): Promise<boolean> => {
     if (!user) {
       toast.error("Vous devez être connecté pour activer une licence");
@@ -82,78 +82,63 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     try {
-      console.log("Attempting to activate license:", key);
+      console.log("Tentative d'activation de licence:", key);
       
-      // First check if the license exists and is available (inactive)
-      const { data: licenseCheck, error: checkError } = await supabase
+      // Vérifier si la clé existe et est disponible
+      const { data: licenseData, error: licenseError } = await supabase
         .from('licenses')
-        .select('id, status')
+        .select('id, status, user_id')
         .eq('license_key', key)
-        .is('user_id', null)  // Ensure license is not assigned to any user
-        .eq('status', 'inactive')
         .maybeSingle();
       
-      console.log("License check result:", licenseCheck, checkError);
+      console.log("Résultat de la vérification de licence:", licenseData, licenseError);
 
-      if (checkError) {
-        console.error("Error checking license:", checkError);
+      if (licenseError) {
+        console.error("Erreur lors de la vérification de la licence:", licenseError);
         toast.error("Erreur lors de la vérification de la licence");
         return false;
       }
 
-      if (!licenseCheck) {
-        // Check if the license is already used by this user
-        const { data: ownLicense, error: ownLicenseError } = await supabase
-          .from('licenses')
-          .select('id, status')
-          .eq('license_key', key)
-          .eq('user_id', user.id)
-          .maybeSingle();
-          
-        if (ownLicenseError) {
-          console.error("Error checking own license:", ownLicenseError);
-          return false;
-        }
-        
-        if (ownLicense) {
-          if (ownLicense.status === 'active') {
-            toast.info("Cette licence est déjà active sur votre compte");
-            await checkLicenseStatus();
-            return true;
-          } else if (ownLicense.status === 'expired') {
-            toast.error("Cette licence a expiré");
-            return false;
-          }
-        } else {
-          // Check if license exists but is used by someone else
-          const { data: anyLicense } = await supabase
-            .from('licenses')
-            .select('status')
-            .eq('license_key', key)
-            .maybeSingle();
-            
-          if (anyLicense) {
-            if (anyLicense.status === 'active') {
-              toast.error("Cette licence est déjà utilisée par un autre compte");
-            } else if (anyLicense.status === 'expired') {
-              toast.error("Cette licence a expiré");
-            } else {
-              toast.error("Cette licence n'est pas disponible");
-            }
-          } else {
-            toast.error("Clé de licence invalide");
-          }
-          return false;
-        }
+      // La licence n'existe pas
+      if (!licenseData) {
+        toast.error("Clé de licence invalide");
+        return false;
       }
 
-      // Set expiration date to 30 days from now
+      // Vérifier si la licence appartient déjà à cet utilisateur
+      if (licenseData.user_id === user.id) {
+        if (licenseData.status === 'active') {
+          toast.info("Cette licence est déjà active sur votre compte");
+          await checkLicenseStatus();
+          return true;
+        } else if (licenseData.status === 'expired') {
+          toast.error("Cette licence a expiré");
+          return false;
+        }
+      } 
+      // La licence appartient à un autre utilisateur
+      else if (licenseData.user_id !== null && licenseData.user_id !== user.id) {
+        toast.error("Cette licence est déjà utilisée par un autre compte");
+        return false;
+      }
+      // La licence est déjà utilisée et expirée
+      else if (licenseData.status === 'expired') {
+        toast.error("Cette licence a expiré");
+        return false;
+      } 
+      // La licence n'est pas disponible pour d'autres raisons
+      else if (licenseData.status !== 'inactive') {
+        toast.error("Cette licence n'est pas disponible");
+        return false;
+      }
+
+      // Définir la date d'expiration à 30 jours à partir de maintenant
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 30);
 
-      console.log("Updating license with ID:", licenseCheck.id);
+      console.log("Mise à jour de la licence avec ID:", licenseData.id);
       
-      // Simplified activation process
+      // Activation de la licence avec processus simplifié
       const { error: updateError } = await supabase
         .from('licenses')
         .update({
@@ -162,21 +147,21 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
           activated_at: new Date().toISOString(),
           expires_at: expiresAt.toISOString()
         })
-        .eq('id', licenseCheck.id);
+        .eq('id', licenseData.id);
 
       if (updateError) {
-        console.error("Error updating license:", updateError);
+        console.error("Erreur lors de la mise à jour de la licence:", updateError);
         toast.error("Erreur lors de l'activation de la licence");
         return false;
       }
 
-      // Refresh license status
+      // Actualiser le statut de la licence
       await checkLicenseStatus();
       
       toast.success("Licence activée avec succès! Accès débloqué pour 30 jours.");
       return true;
     } catch (error) {
-      console.error('Error activating license:', error);
+      console.error('Erreur lors de l\'activation de la licence:', error);
       toast.error("Erreur lors de l'activation de la licence");
       return false;
     }
@@ -186,7 +171,7 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
     await checkLicenseStatus();
   };
 
-  // Check license status on auth change
+  // Vérifier le statut de la licence lors du changement d'authentification
   useEffect(() => {
     if (isAuthenticated) {
       checkLicenseStatus();

@@ -9,27 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      admin_users: {
-        Row: {
-          created_at: string
-          id: string
-          is_admin: boolean
-          kalim: number | null
-        }
-        Insert: {
-          created_at?: string
-          id: string
-          is_admin?: boolean
-          kalim?: number | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_admin?: boolean
-          kalim?: number | null
-        }
-        Relationships: []
-      }
       generated_projects: {
         Row: {
           analysis: Json | null
@@ -78,7 +57,6 @@ export type Database = {
       licenses: {
         Row: {
           activated_at: string | null
-          admin_id: string | null
           created_at: string
           expires_at: string | null
           id: string
@@ -89,7 +67,6 @@ export type Database = {
         }
         Insert: {
           activated_at?: string | null
-          admin_id?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
@@ -100,7 +77,6 @@ export type Database = {
         }
         Update: {
           activated_at?: string | null
-          admin_id?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string

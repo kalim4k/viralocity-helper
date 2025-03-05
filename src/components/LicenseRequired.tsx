@@ -24,14 +24,14 @@ export const LicenseRequired: React.FC = () => {
     setActivationError(null);
     
     try {
-      console.log("Attempting to activate license on LicenseRequired page:", licenseKey.trim());
+      console.log("Tentative d'activation de licence sur la page LicenseRequired:", licenseKey.trim());
       const success = await activateLicense(licenseKey.trim());
       
       if (!success) {
         setActivationError("Échec de l'activation. Veuillez vérifier que votre clé est valide.");
       }
     } catch (error) {
-      console.error('Error during license activation:', error);
+      console.error('Erreur lors de l\'activation de la licence:', error);
       setActivationError("Une erreur inattendue s'est produite. Veuillez réessayer plus tard.");
     } finally {
       setIsActivating(false);
