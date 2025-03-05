@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, User, RefreshCw, CheckCircle, Clock, List } from 'lucide-react';
 import { fetchTikTokProfile } from '@/services/tiktokService';
@@ -23,6 +24,7 @@ export const AccountAnalyzer: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [analysisHistory, setAnalysisHistory] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
+  const [isCameraFullscreen, setIsCameraFullscreen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -87,6 +89,7 @@ export const AccountAnalyzer: React.FC = () => {
         const stream = video.srcObject as MediaStream;
         stream?.getTracks().forEach(track => track.stop());
         
+        setIsCameraFullscreen(false);
         setStep('scan');
         simulateScan();
       }
@@ -101,6 +104,7 @@ export const AccountAnalyzer: React.FC = () => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
+          setIsCameraFullscreen(true);
           console.log("Caméra démarrée avec succès");
         }
       } else {
@@ -189,6 +193,39 @@ export const AccountAnalyzer: React.FC = () => {
     setStep('analysis');
   };
 
+  // Render the camera fullscreen when active
+  if (isCameraFullscreen) {
+    return (
+      <div className="fixed inset-0 bg-black z-50 flex flex-col">
+        <div className="relative flex-1">
+          <video 
+            ref={videoRef} 
+            className="absolute inset-0 w-full h-full object-cover" 
+            autoPlay 
+            playsInline
+          />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="border-2 border-tva-primary w-3/4 h-3/4 rounded-lg flex items-center justify-center">
+              <div className="animate-pulse text-sm bg-black/50 px-3 py-2 rounded">
+                Placez votre profil dans le cadre
+              </div>
+            </div>
+          </div>
+          <div className="absolute bottom-8 left-0 right-0 flex justify-center">
+            <button onClick={capturePhoto} className="bg-white w-16 h-16 rounded-full border-4 border-tva-primary"></button>
+          </div>
+          <button 
+            onClick={() => setIsCameraFullscreen(false)} 
+            className="absolute top-4 left-4 bg-black/50 text-white p-2 rounded-full"
+          >
+            Annuler
+          </button>
+          <canvas ref={canvasRef} className="hidden" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {isAuthenticated && (
@@ -198,73 +235,164 @@ export const AccountAnalyzer: React.FC = () => {
             <TabsTrigger value="history">Historique</TabsTrigger>
           </TabsList>
           <TabsContent value="new">
-            <section className="glass p-5 rounded-xl space-y-4">
-              <h2 className="text-lg font-semibold">Analysez un compte TikTok</h2>
-              
-              <p className="text-sm text-tva-text/70">
-                Prenez une photo de votre compte TikTok ou importez une capture d'écran pour une analyse complète.
-              </p>
-              
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <button 
-                  onClick={startCamera}
-                  className="flex flex-col items-center justify-center p-4 bg-tva-surface hover:bg-tva-surface/80 rounded-xl transition-all"
-                >
-                  <div className="bg-tva-primary/20 p-3 rounded-full mb-3">
-                    <Camera size={24} className="text-tva-primary" />
-                  </div>
-                  <span className="text-sm font-medium">Prendre une photo</span>
-                </button>
+            {step === 'upload' && (
+              <section className="glass p-5 rounded-xl space-y-4">
+                <h2 className="text-lg font-semibold">Analysez un compte TikTok</h2>
                 
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex flex-col items-center justify-center p-4 bg-tva-surface hover:bg-tva-surface/80 rounded-xl transition-all"
-                >
-                  <div className="bg-tva-secondary/20 p-3 rounded-full mb-3">
-                    <Upload size={24} className="text-tva-secondary" />
-                  </div>
-                  <span className="text-sm font-medium">Importer une image</span>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileChange} 
-                    accept="image/*" 
-                    className="hidden" 
-                  />
-                </button>
-              </div>
-              
-              <div className="relative">
-                <video 
-                  ref={videoRef} 
-                  className="w-full aspect-[3/4] bg-black rounded-lg mt-4 object-cover hidden" 
-                  autoPlay 
-                  playsInline
-                  onLoadedMetadata={() => {
-                    if (videoRef.current) {
-                      videoRef.current.classList.remove('hidden');
+                <p className="text-sm text-tva-text/70">
+                  Prenez une photo de votre compte TikTok ou importez une capture d'écran pour une analyse complète.
+                </p>
+                
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <button 
+                    onClick={startCamera}
+                    className="flex flex-col items-center justify-center p-4 bg-tva-surface hover:bg-tva-surface/80 rounded-xl transition-all"
+                  >
+                    <div className="bg-tva-primary/20 p-3 rounded-full mb-3">
+                      <Camera size={24} className="text-tva-primary" />
+                    </div>
+                    <span className="text-sm font-medium">Prendre une photo</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex flex-col items-center justify-center p-4 bg-tva-surface hover:bg-tva-surface/80 rounded-xl transition-all"
+                  >
+                    <div className="bg-tva-secondary/20 p-3 rounded-full mb-3">
+                      <Upload size={24} className="text-tva-secondary" />
+                    </div>
+                    <span className="text-sm font-medium">Importer une image</span>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleFileChange} 
+                      accept="image/*" 
+                      className="hidden" 
+                    />
+                  </button>
+                </div>
+              </section>
+            )}
+            
+            {step === 'scan' && (
+              <section className="glass p-6 rounded-xl space-y-6">
+                <div className="text-center">
+                  <h2 className="text-lg font-semibold mb-2">Analyse en cours</h2>
+                  <p className="text-sm text-tva-text/70">
+                    Nous analysons votre image pour extraire les informations pertinentes...
+                  </p>
+                </div>
+                
+                <div className="relative">
+                  {image && (
+                    <div className="relative rounded-lg overflow-hidden">
+                      <img src={image} alt="Capture" className="w-full" />
                       
-                      const scanOverlay = document.createElement('div');
-                      scanOverlay.className = 'absolute inset-0 flex items-center justify-center';
-                      scanOverlay.innerHTML = `
-                        <div class="border-2 border-tva-primary w-3/4 h-3/4 rounded-lg flex items-center justify-center">
-                          <div class="animate-pulse text-xs text-white bg-black/50 px-2 py-1 rounded">
-                            Placez votre profil dans le cadre
+                      {isScanning && (
+                        <div className="absolute inset-0 bg-gradient-to-b from-tva-primary/10 to-tva-primary/30 animate-pulse">
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="bg-black/50 backdrop-blur-sm p-4 rounded-lg">
+                              <div className="flex items-center space-x-3">
+                                <RefreshCw size={20} className="text-tva-primary animate-spin" />
+                                <span className="text-white font-medium">
+                                  Analyse d'image
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="absolute inset-0">
+                              <div className="w-full h-0.5 bg-tva-primary/50 absolute" style={{ top: `${scanProgress}%`, boxShadow: '0 0 10px rgba(79, 70, 229, 0.8)' }} />
+                              <div className="h-full w-0.5 bg-tva-primary/50 absolute left-1/4 animate-pulse" style={{ boxShadow: '0 0 10px rgba(79, 70, 229, 0.8)' }} />
+                              <div className="h-full w-0.5 bg-tva-primary/50 absolute left-3/4 animate-pulse" style={{ boxShadow: '0 0 10px rgba(79, 70, 229, 0.8)' }} />
+                            </div>
                           </div>
                         </div>
-                      `;
-                      videoRef.current.parentNode?.appendChild(scanOverlay);
-                      
-                      const captureButton = document.createElement('button');
-                      captureButton.className = 'absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white w-14 h-14 rounded-full border-4 border-tva-primary';
-                      captureButton.onclick = capturePhoto;
-                      videoRef.current.parentNode?.appendChild(captureButton);
-                    }
-                  }}
-                />
-                <canvas ref={canvasRef} className="hidden" />
-              </div>
-            </section>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span>Analyse d'image</span>
+                    <span>{scanProgress}%</span>
+                  </div>
+                  <Progress value={scanProgress} />
+                </div>
+                
+                <div className="space-y-1.5">
+                  <div className="flex items-center text-xs">
+                    <CheckCircle size={14} className={`mr-2 ${scanProgress > 20 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
+                    <span className={scanProgress > 20 ? 'text-tva-text' : 'text-tva-text/50'}>Détection de l'interface TikTok</span>
+                  </div>
+                  <div className="flex items-center text-xs">
+                    <CheckCircle size={14} className={`mr-2 ${scanProgress > 40 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
+                    <span className={scanProgress > 40 ? 'text-tva-text' : 'text-tva-text/50'}>Extraction des éléments de la page</span>
+                  </div>
+                  <div className="flex items-center text-xs">
+                    <CheckCircle size={14} className={`mr-2 ${scanProgress > 60 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
+                    <span className={scanProgress > 60 ? 'text-tva-text' : 'text-tva-text/50'}>Identification du profil</span>
+                  </div>
+                  <div className="flex items-center text-xs">
+                    <CheckCircle size={14} className={`mr-2 ${scanProgress > 80 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
+                    <span className={scanProgress > 80 ? 'text-tva-text' : 'text-tva-text/50'}>Traitement des données</span>
+                  </div>
+                  <div className="flex items-center text-xs">
+                    <CheckCircle size={14} className={`mr-2 ${scanProgress >= 100 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
+                    <span className={scanProgress >= 100 ? 'text-tva-text' : 'text-tva-text/50'}>Finalisation</span>
+                  </div>
+                </div>
+              </section>
+            )}
+            
+            {step === 'username' && (
+              <section className="glass p-5 rounded-xl space-y-4">
+                <h2 className="text-lg font-semibold">Entrez votre nom d'utilisateur TikTok</h2>
+                
+                <p className="text-sm text-tva-text/70">
+                  Pour compléter l'analyse, veuillez entrer votre nom d'utilisateur TikTok.
+                </p>
+                
+                {image && (
+                  <div className="rounded-lg overflow-hidden mb-4">
+                    <img src={image} alt="Capture d'écran" className="w-full" />
+                  </div>
+                )}
+                
+                <div className="flex space-x-2">
+                  <div className="flex-1 relative">
+                    <User size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-tva-text/50" />
+                    <input 
+                      type="text" 
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Nom d'utilisateur (ex: mrbeast)" 
+                      className="w-full bg-tva-surface/60 border border-tva-border rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-tva-primary text-black" 
+                    />
+                  </div>
+                  <button 
+                    onClick={analyzeProfile}
+                    disabled={isAnalyzing || !username}
+                    className={`${
+                      isAnalyzing ? 'bg-tva-primary/70' : 'bg-tva-primary hover:bg-tva-primary/90'
+                    } text-white py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center gap-2`}
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <RefreshCw size={16} className="animate-spin" />
+                        <span>Analyse...</span>
+                      </>
+                    ) : 'Analyser'}
+                  </button>
+                </div>
+                
+                {error && (
+                  <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+                    <p className="text-red-400 text-sm">{error}</p>
+                  </div>
+                )}
+              </section>
+            )}
           </TabsContent>
           <TabsContent value="history">
             <section className="glass p-5 rounded-xl">
@@ -301,200 +429,8 @@ export const AccountAnalyzer: React.FC = () => {
           </TabsContent>
         </Tabs>
       )}
-
-      {activeTab === 'new' && (
-        <>
-          {step === 'upload' && (
-            <section className="glass p-5 rounded-xl space-y-4">
-              <h2 className="text-lg font-semibold">Analysez un compte TikTok</h2>
-              
-              <p className="text-sm text-tva-text/70">
-                Prenez une photo de votre compte TikTok ou importez une capture d'écran pour une analyse complète.
-              </p>
-              
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <button 
-                  onClick={startCamera}
-                  className="flex flex-col items-center justify-center p-4 bg-tva-surface hover:bg-tva-surface/80 rounded-xl transition-all"
-                >
-                  <div className="bg-tva-primary/20 p-3 rounded-full mb-3">
-                    <Camera size={24} className="text-tva-primary" />
-                  </div>
-                  <span className="text-sm font-medium">Prendre une photo</span>
-                </button>
-                
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex flex-col items-center justify-center p-4 bg-tva-surface hover:bg-tva-surface/80 rounded-xl transition-all"
-                >
-                  <div className="bg-tva-secondary/20 p-3 rounded-full mb-3">
-                    <Upload size={24} className="text-tva-secondary" />
-                  </div>
-                  <span className="text-sm font-medium">Importer une image</span>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileChange} 
-                    accept="image/*" 
-                    className="hidden" 
-                  />
-                </button>
-              </div>
-              
-              <div className="relative">
-                <video 
-                  ref={videoRef} 
-                  className="w-full aspect-[3/4] bg-black rounded-lg mt-4 object-cover hidden" 
-                  autoPlay 
-                  playsInline
-                  onLoadedMetadata={() => {
-                    if (videoRef.current) {
-                      videoRef.current.classList.remove('hidden');
-                      
-                      const scanOverlay = document.createElement('div');
-                      scanOverlay.className = 'absolute inset-0 flex items-center justify-center';
-                      scanOverlay.innerHTML = `
-                        <div class="border-2 border-tva-primary w-3/4 h-3/4 rounded-lg flex items-center justify-center">
-                          <div class="animate-pulse text-xs text-white bg-black/50 px-2 py-1 rounded">
-                            Placez votre profil dans le cadre
-                          </div>
-                        </div>
-                      `;
-                      videoRef.current.parentNode?.appendChild(scanOverlay);
-                      
-                      const captureButton = document.createElement('button');
-                      captureButton.className = 'absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white w-14 h-14 rounded-full border-4 border-tva-primary';
-                      captureButton.onclick = capturePhoto;
-                      videoRef.current.parentNode?.appendChild(captureButton);
-                    }
-                  }}
-                />
-                <canvas ref={canvasRef} className="hidden" />
-              </div>
-            </section>
-          )}
-          
-          {step === 'scan' && (
-            <section className="glass p-6 rounded-xl space-y-6">
-              <div className="text-center">
-                <h2 className="text-lg font-semibold mb-2">Analyse en cours</h2>
-                <p className="text-sm text-tva-text/70">
-                  Nous analysons votre image pour extraire les informations pertinentes...
-                </p>
-              </div>
-              
-              <div className="relative">
-                {image && (
-                  <div className="relative rounded-lg overflow-hidden">
-                    <img src={image} alt="Capture" className="w-full" />
-                    
-                    {isScanning && (
-                      <div className="absolute inset-0 bg-gradient-to-b from-tva-primary/10 to-tva-primary/30 animate-pulse">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="bg-black/50 backdrop-blur-sm p-4 rounded-lg">
-                            <div className="flex items-center space-x-3">
-                              <RefreshCw size={20} className="text-tva-primary animate-spin" />
-                              <span className="text-white font-medium">
-                                Analyse d'image
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="absolute inset-0">
-                            <div className="w-full h-0.5 bg-tva-primary/50 absolute" style={{ top: `${scanProgress}%`, boxShadow: '0 0 10px rgba(79, 70, 229, 0.8)' }} />
-                            <div className="h-full w-0.5 bg-tva-primary/50 absolute left-1/4 animate-pulse" style={{ boxShadow: '0 0 10px rgba(79, 70, 229, 0.8)' }} />
-                            <div className="h-full w-0.5 bg-tva-primary/50 absolute left-3/4 animate-pulse" style={{ boxShadow: '0 0 10px rgba(79, 70, 229, 0.8)' }} />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span>Analyse d'image</span>
-                  <span>{scanProgress}%</span>
-                </div>
-                <Progress value={scanProgress} />
-              </div>
-              
-              <div className="space-y-1.5">
-                <div className="flex items-center text-xs">
-                  <CheckCircle size={14} className={`mr-2 ${scanProgress > 20 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
-                  <span className={scanProgress > 20 ? 'text-tva-text' : 'text-tva-text/50'}>Détection de l'interface TikTok</span>
-                </div>
-                <div className="flex items-center text-xs">
-                  <CheckCircle size={14} className={`mr-2 ${scanProgress > 40 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
-                  <span className={scanProgress > 40 ? 'text-tva-text' : 'text-tva-text/50'}>Extraction des éléments de la page</span>
-                </div>
-                <div className="flex items-center text-xs">
-                  <CheckCircle size={14} className={`mr-2 ${scanProgress > 60 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
-                  <span className={scanProgress > 60 ? 'text-tva-text' : 'text-tva-text/50'}>Identification du profil</span>
-                </div>
-                <div className="flex items-center text-xs">
-                  <CheckCircle size={14} className={`mr-2 ${scanProgress > 80 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
-                  <span className={scanProgress > 80 ? 'text-tva-text' : 'text-tva-text/50'}>Traitement des données</span>
-                </div>
-                <div className="flex items-center text-xs">
-                  <CheckCircle size={14} className={`mr-2 ${scanProgress >= 100 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
-                  <span className={scanProgress >= 100 ? 'text-tva-text' : 'text-tva-text/50'}>Finalisation</span>
-                </div>
-              </div>
-            </section>
-          )}
-          
-          {step === 'username' && (
-            <section className="glass p-5 rounded-xl space-y-4">
-              <h2 className="text-lg font-semibold">Entrez votre nom d'utilisateur TikTok</h2>
-              
-              <p className="text-sm text-tva-text/70">
-                Pour compléter l'analyse, veuillez entrer votre nom d'utilisateur TikTok.
-              </p>
-              
-              {image && (
-                <div className="rounded-lg overflow-hidden mb-4">
-                  <img src={image} alt="Capture d'écran" className="w-full" />
-                </div>
-              )}
-              
-              <div className="flex space-x-2">
-                <div className="flex-1 relative">
-                  <User size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-tva-text/50" />
-                  <input 
-                    type="text" 
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Nom d'utilisateur (ex: mrbeast)" 
-                    className="w-full bg-tva-surface/60 border border-tva-border rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-tva-primary text-black" 
-                  />
-                </div>
-                <button 
-                  onClick={analyzeProfile}
-                  disabled={isAnalyzing || !username}
-                  className={`${
-                    isAnalyzing ? 'bg-tva-primary/70' : 'bg-tva-primary hover:bg-tva-primary/90'
-                  } text-white py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center gap-2`}
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <RefreshCw size={16} className="animate-spin" />
-                      <span>Analyse...</span>
-                    </>
-                  ) : 'Analyser'}
-                </button>
-              </div>
-              
-              {error && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-                  <p className="text-red-400 text-sm">{error}</p>
-                </div>
-              )}
-            </section>
-          )}
-        </>
-      )}
+      
+      {/* Removed duplicate upload section */}
       
       {step === 'analysis' && profile && analysis && (
         <div className="space-y-6 animate-slide-up">
