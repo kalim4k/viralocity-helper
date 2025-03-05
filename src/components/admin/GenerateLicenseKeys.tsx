@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -10,10 +10,11 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
-import { Key, Copy, Download, Plus } from 'lucide-react';
+import { Key, Copy, Download, Plus, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const GenerateLicenseKeys: React.FC = () => {
   const { user } = useAuth();
@@ -21,6 +22,39 @@ export const GenerateLicenseKeys: React.FC = () => {
   const [price, setPrice] = useState<number | ''>('');
   const [generatedKeys, setGeneratedKeys] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        setIsCheckingAdmin(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.rpc('is_admin', {
+          user_id: user.id
+        });
+        
+        if (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(!!data);
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      } finally {
+        setIsCheckingAdmin(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user]);
 
   // Generate a random license key
   const generateRandomKey = () => {
@@ -38,6 +72,42 @@ export const GenerateLicenseKeys: React.FC = () => {
     return segments.join('-');
   };
 
+  // Check if a key already exists in the database
+  const checkKeyExists = async (licenseKey: string) => {
+    const { data, error } = await supabase
+      .from('licenses')
+      .select('license_key')
+      .eq('license_key', licenseKey)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error checking if key exists:', error);
+      return true; // Assume it exists to be safe
+    }
+    
+    return !!data;
+  };
+
+  // Generate a unique key
+  const generateUniqueKey = async () => {
+    let licenseKey;
+    let exists = true;
+    let attempts = 0;
+    
+    // Try up to 10 times to generate a unique key
+    while (exists && attempts < 10) {
+      licenseKey = generateRandomKey();
+      exists = await checkKeyExists(licenseKey);
+      attempts++;
+    }
+    
+    if (exists) {
+      throw new Error('Could not generate a unique key after multiple attempts');
+    }
+    
+    return licenseKey;
+  };
+
   // Generate license keys
   const handleGenerateKeys = async () => {
     if (quantity < 1) {
@@ -50,6 +120,11 @@ export const GenerateLicenseKeys: React.FC = () => {
       return;
     }
 
+    if (!isAdmin) {
+      toast.error('Vous n\'avez pas les droits administrateur');
+      return;
+    }
+
     setIsGenerating(true);
     const keys: string[] = [];
     const keysToInsert = [];
@@ -57,14 +132,24 @@ export const GenerateLicenseKeys: React.FC = () => {
     try {
       // Generate unique keys
       for (let i = 0; i < quantity; i++) {
-        const licenseKey = generateRandomKey();
-        keys.push(licenseKey);
-        keysToInsert.push({
-          license_key: licenseKey,
-          price: price || null,
-          status: 'inactive',
-          admin_id: user.id
-        });
+        try {
+          const licenseKey = await generateUniqueKey();
+          keys.push(licenseKey);
+          keysToInsert.push({
+            license_key: licenseKey,
+            price: price || null,
+            status: 'inactive',
+            admin_id: user.id
+          });
+        } catch (error) {
+          console.error('Error generating unique key:', error);
+          toast.error('Erreur lors de la génération d\'une clé unique');
+          // Continue with the next key
+        }
+      }
+
+      if (keys.length === 0) {
+        throw new Error('Could not generate any unique keys');
       }
 
       // Insert keys into database
@@ -78,7 +163,7 @@ export const GenerateLicenseKeys: React.FC = () => {
       }
 
       setGeneratedKeys(keys);
-      toast.success(`${quantity} clé${quantity > 1 ? 's' : ''} de licence générée${quantity > 1 ? 's' : ''}`);
+      toast.success(`${keys.length} clé${keys.length > 1 ? 's' : ''} de licence générée${keys.length > 1 ? 's' : ''}`);
     } catch (error) {
       console.error('Error generating license keys:', error);
       toast.error('Erreur lors de la génération des clés de licence');
@@ -107,6 +192,33 @@ export const GenerateLicenseKeys: React.FC = () => {
     link.click();
     document.body.removeChild(link);
   };
+
+  if (isCheckingAdmin) {
+    return (
+      <Card>
+        <CardContent className="py-10">
+          <div className="flex justify-center">
+            <div className="w-8 h-8 border-2 border-tva-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isAdmin === false) {
+    return (
+      <Card>
+        <CardContent className="py-6">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Vous n'avez pas les droits administrateur pour accéder à cette fonctionnalité.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
