@@ -31,6 +31,7 @@ export const AccountAnalyzer: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target?.result) {
+        console.log("Image uploadée et chargée avec succès");
         setImage(event.target.result as string);
         setStep('scan');
         simulateScan();
@@ -42,6 +43,7 @@ export const AccountAnalyzer: React.FC = () => {
   // Fonction pour prendre une photo avec la caméra
   const capturePhoto = async () => {
     if (videoRef.current && canvasRef.current) {
+      console.log("Capture de photo depuis la caméra");
       const canvas = canvasRef.current;
       const video = videoRef.current;
       
@@ -64,6 +66,7 @@ export const AccountAnalyzer: React.FC = () => {
         
         // Convertir en base64
         const dataUrl = canvas.toDataURL('image/jpeg');
+        console.log("Photo capturée et convertie en base64");
         setImage(dataUrl);
         
         // Arrêter le stream de la caméra
@@ -79,31 +82,27 @@ export const AccountAnalyzer: React.FC = () => {
   // Fonction pour démarrer la caméra
   const startCamera = async () => {
     try {
+      console.log("Démarrage de la caméra");
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
+          console.log("Caméra démarrée avec succès");
         }
       } else {
-        toast({
-          title: "Erreur",
-          description: "Votre navigateur ne prend pas en charge la caméra.",
-          variant: "destructive"
-        });
+        console.error("Le navigateur ne prend pas en charge la caméra");
+        toast("Votre navigateur ne prend pas en charge la caméra");
       }
     } catch (err) {
       console.error("Erreur d'accès à la caméra:", err);
-      toast({
-        title: "Erreur d'accès à la caméra",
-        description: "Veuillez autoriser l'accès à la caméra ou utiliser l'option d'upload.",
-        variant: "destructive"
-      });
+      toast("Erreur d'accès à la caméra. Veuillez autoriser l'accès ou utiliser l'option d'upload.");
     }
   };
 
   // Simulation d'analyse d'image futuriste
   const simulateScan = () => {
+    console.log("Début de la simulation de scan");
     setIsScanning(true);
     setScanProgress(0);
     
@@ -113,6 +112,7 @@ export const AccountAnalyzer: React.FC = () => {
         if (newProgress >= 100) {
           clearInterval(interval);
           setTimeout(() => {
+            console.log("Scan terminé, passage à l'étape du nom d'utilisateur");
             setIsScanning(false);
             setStep('username');
           }, 500);
@@ -126,11 +126,7 @@ export const AccountAnalyzer: React.FC = () => {
   // Fonction pour analyser le profil TikTok
   const analyzeProfile = async () => {
     if (!username) {
-      toast({
-        title: "Nom d'utilisateur requis",
-        description: "Veuillez entrer un nom d'utilisateur TikTok.",
-        variant: "destructive"
-      });
+      toast("Veuillez entrer un nom d'utilisateur TikTok");
       return;
     }
     
@@ -138,29 +134,33 @@ export const AccountAnalyzer: React.FC = () => {
     setError(null);
     
     try {
+      console.log(`Début de l'analyse du profil TikTok: ${username}`);
+      
       // Récupération des données du profil
+      toast("Récupération du profil TikTok...");
       const profileData = await fetchTikTokProfile(username);
+      console.log("Profil récupéré:", profileData);
       setProfile(profileData);
       
       // Analyse du profil avec Gemini
+      toast("Analyse du profil en cours...");
+      console.log("Début de l'analyse avec Gemini", image ? "avec image" : "sans image");
       const analysisResult = await analyzeTikTokProfile(profileData, image);
+      console.log("Analyse terminée:", analysisResult);
       setAnalysis(analysisResult);
       
       setStep('analysis');
       
-      toast({
-        title: "Analyse terminée",
-        description: "L'analyse de votre profil TikTok est prête !",
-      });
+      toast("L'analyse de votre profil TikTok est prête !");
     } catch (err) {
       console.error('Erreur lors de l\'analyse:', err);
-      setError(err instanceof Error ? err.message : 'Une erreur s\'est produite lors de l\'analyse');
+      const errorMessage = err instanceof Error ? err.message : 'Une erreur s\'est produite lors de l\'analyse';
+      setError(errorMessage);
       
-      toast({
-        variant: "destructive",
-        title: "Erreur d'analyse",
-        description: err instanceof Error ? err.message : 'Une erreur s\'est produite lors de l\'analyse',
-      });
+      toast(errorMessage);
+      
+      // Reste à l'étape username en cas d'erreur
+      setStep('username');
     } finally {
       setIsAnalyzing(false);
     }
@@ -342,9 +342,14 @@ export const AccountAnalyzer: React.FC = () => {
               disabled={isAnalyzing || !username}
               className={`${
                 isAnalyzing ? 'bg-tva-primary/70' : 'bg-tva-primary hover:bg-tva-primary/90'
-              } text-white py-2 px-4 rounded-lg text-sm font-medium transition-all`}
+              } text-white py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center gap-2`}
             >
-              {isAnalyzing ? 'Analyse...' : 'Analyser'}
+              {isAnalyzing ? (
+                <>
+                  <RefreshCw size={16} className="animate-spin" />
+                  <span>Analyse...</span>
+                </>
+              ) : 'Analyser'}
             </button>
           </div>
           
@@ -458,4 +463,4 @@ export const AccountAnalyzer: React.FC = () => {
       )}
     </div>
   );
-}
+};

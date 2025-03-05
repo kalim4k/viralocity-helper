@@ -13,8 +13,8 @@ export function mapToTikTokProfile(response: RapidAPIResponse, username: string)
   
   // Validate the response structure
   if (!response.data || !response.data.owner || !response.data.owner.user_info) {
-    console.error('Invalid API response structure:', response);
-    throw new Error('No user found with that username');
+    console.error('Invalid API response structure:', JSON.stringify(response, null, 2));
+    throw new Error('Profil TikTok introuvable. Vérifiez le nom d\'utilisateur et réessayez.');
   }
   
   // Get user info from the correct path
@@ -26,20 +26,24 @@ export function mapToTikTokProfile(response: RapidAPIResponse, username: string)
   
   // Extract real videos from itemList if available
   const videos = [];
+  let videoCount = 0;
   
   if (response.data.itemList && response.data.itemList.length > 0) {
-    console.log(`Found ${response.data.itemList.length} videos`);
+    videoCount = response.data.itemList.length;
+    console.log(`Found ${videoCount} videos`);
     
     // Take up to 3 videos from the response
     const videoItems = response.data.itemList.slice(0, 3);
     
     for (const item of videoItems) {
-      videos.push({
-        id: item.id || String(Math.random()),
-        thumbnail: item.video?.cover || 'https://picsum.photos/200/350?random=' + videos.length,
-        views: item.stats?.playCount || Math.floor(Math.random() * 50000),
-        title: item.desc || 'Vidéo TikTok'
-      });
+      if (item && item.video && item.video.cover) {
+        videos.push({
+          id: item.id || String(Math.random()),
+          thumbnail: item.video.cover || 'https://picsum.photos/200/350?random=' + videos.length,
+          views: item.stats?.playCount || Math.floor(Math.random() * 50000),
+          title: item.desc || 'Vidéo TikTok'
+        });
+      }
     }
   } else {
     console.log('No videos found in API response, using placeholders');
@@ -71,31 +75,38 @@ export function mapToTikTokProfile(response: RapidAPIResponse, username: string)
   let likesCount = 0;
   
   // Attempt to find likes from various possible fields
-  if (userInfo.heartCount) {
-    likesCount = userInfo.heartCount;
-  } else if (userInfo.heart) {
-    likesCount = userInfo.heart;
-  } else if (userInfo.total_favorited) {
-    likesCount = userInfo.total_favorited;
+  if (userInfo.heartCount !== undefined) {
+    likesCount = Number(userInfo.heartCount);
+  } else if (userInfo.heart !== undefined) {
+    likesCount = Number(userInfo.heart);
+  } else if (userInfo.total_favorited !== undefined) {
+    likesCount = Number(userInfo.total_favorited);
   } else {
     // If we can't find likes in the user info, use a default
     likesCount = 0;
     console.log('No likes count found in API response');
   }
   
+  // Ensure follower_count is a number
+  const followerCount = userInfo.follower_count !== undefined ? Number(userInfo.follower_count) : 0;
+  
+  // Get avatar URL with a fallback
+  const avatarUrl = userInfo.avatar_thumb?.url_list?.[0] || 'https://placehold.co/200x200?text=No+Avatar';
+  
   // Create the profile with all the available information
   const profile: TikTokProfile = {
     username: `@${userInfo.unique_id || cleanUsername}`,
     displayName: userInfo.nickname || cleanUsername,
     nickname: userInfo.nickname || cleanUsername,
-    avatar: userInfo.avatar_thumb?.url_list?.[0] || 'https://placehold.co/200x200?text=No+Avatar',
-    avatarUrl: userInfo.avatar_thumb?.url_list?.[0] || 'https://placehold.co/200x200?text=No+Avatar',
-    followers: userInfo.follower_count || 0,
+    avatar: avatarUrl,
+    avatarUrl: avatarUrl,
+    followers: followerCount,
     following: 0, // This will be updated if available in the API
     likes: likesCount,
     bio: userInfo.signature || '',
-    verified: false, // This will be updated if available in the API
-    videos: videos
+    verified: Boolean(userInfo.verified), // This will be updated if available in the API
+    videos: videos,
+    videoCount: videoCount
   };
   
   console.log('Mapping complete:', profile);

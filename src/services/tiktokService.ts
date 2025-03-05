@@ -30,7 +30,7 @@ export async function fetchTikTokProfile(username: string): Promise<TikTokProfil
           console.log('Found authorStats in first video:', item.authorStats);
           
           // If user_info doesn't have heart/likes info, try to get it from authorStats
-          if (result.data.owner.user_info && 
+          if (result.data.owner && result.data.owner.user_info && 
               !('heart' in result.data.owner.user_info) && 
               !('heartCount' in result.data.owner.user_info) && 
               !('total_favorited' in result.data.owner.user_info)) {
@@ -54,7 +54,7 @@ export async function fetchTikTokProfile(username: string): Promise<TikTokProfil
     
     // Map the response to our application model
     const profile = mapToTikTokProfile(result, cleanUsername);
-    console.log('Service: Profile successfully mapped');
+    console.log('Service: Profile successfully mapped:', profile);
     
     return profile;
   } catch (error) {
@@ -62,6 +62,6 @@ export async function fetchTikTokProfile(username: string): Promise<TikTokProfil
     if (error instanceof Error) {
       console.error('Error message:', error.message);
     }
-    throw error;
+    throw new Error(`Erreur lors de la récupération du profil TikTok: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
   }
 }
