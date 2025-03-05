@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AppLayout } from '../components/AppLayout';
-import { Sparkles, FileText, Video, Hash, MessageSquare, Plus, Clock, List, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { Sparkles, FileText, Video, Hash, MessageSquare, Plus, Clock, List, ChevronDown, MoreHorizontal, LockKeyhole } from 'lucide-react';
 import { ProgressSteps, Step } from '@/components/ProgressSteps';
 import { IdeaGenerationStep } from '@/components/generateurs/IdeaGenerationStep';
 import { ScriptGenerationStep } from '@/components/generateurs/ScriptGenerationStep';
@@ -11,7 +11,8 @@ import { VideoIdea, VideoScript, VideoAnalysis } from '@/services/geminiService'
 import { toast } from 'sonner';
 import { saveGeneratedProject, getGeneratedProjects, GeneratedProject, deleteGeneratedProject } from '@/services/generatedProjectsService';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { useLicense } from '@/contexts/LicenseContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -35,7 +36,10 @@ const GenerateursPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'create' | 'projects'>('create');
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [isLicenseDialogOpen, setIsLicenseDialogOpen] = useState(false);
+  
   const { isAuthenticated } = useAuth();
+  const { hasLicense } = useLicense();
 
   const steps: Step[] = [
     { id: 'ideas', label: 'Idées', icon: Sparkles },
@@ -64,6 +68,15 @@ const GenerateursPage = () => {
     }
   };
 
+  // Fonction pour vérifier si l'utilisateur peut créer un nouveau projet
+  const canCreateNewProject = () => {
+    // Si l'utilisateur a une licence, il peut créer autant de projets qu'il veut
+    if (hasLicense) return true;
+    
+    // Sinon, vérifier s'il a déjà un projet gratuit
+    return savedProjects.length === 0;
+  };
+
   const handleStepClick = (index: number) => {
     // Only allow navigation to completed steps or the next available step
     if (index <= Math.max(...completedSteps, 0) + 1 && index <= completedSteps.length) {
@@ -72,6 +85,11 @@ const GenerateursPage = () => {
   };
 
   const handleIdeaSelected = (idea: VideoIdea) => {
+    if (!canCreateNewProject()) {
+      setIsLicenseDialogOpen(true);
+      return;
+    }
+    
     setSelectedIdea(idea);
     setCurrentStep(1);
     
@@ -138,6 +156,11 @@ const GenerateursPage = () => {
   };
 
   const resetWorkflow = () => {
+    if (!canCreateNewProject()) {
+      setIsLicenseDialogOpen(true);
+      return;
+    }
+    
     setCurrentStep(0);
     setCompletedSteps([]);
     setSelectedIdea(null);
@@ -184,7 +207,8 @@ const GenerateursPage = () => {
             scriptType,
             null,
             null,
-            'in-progress'
+            'in-progress',
+            activeProjectId
           );
         } else {
           // Créer un nouveau projet
@@ -211,7 +235,8 @@ const GenerateursPage = () => {
             scriptType,
             analysis,
             null,
-            'analyzed'
+            'analyzed',
+            activeProjectId
           );
         } else {
           // Créer un nouveau projet
@@ -238,7 +263,8 @@ const GenerateursPage = () => {
             scriptType,
             analysis,
             metadata,
-            'completed'
+            'completed',
+            activeProjectId
           );
         } else {
           // Créer un nouveau projet
@@ -263,50 +289,56 @@ const GenerateursPage = () => {
   };
 
   const loadProject = (project: GeneratedProject) => {
-    setActiveProjectId(project.id);
-    setProjectTitle(project.title);
-    setSelectedIdea(project.idea);
-    setGeneratedScript(project.script);
-    setScriptType(project.scriptType);
-    setScriptAnalysis(project.analysis);
-    
-    // Déterminer à quelle étape du flux de travail le projet en est
-    const newCompletedSteps: number[] = [];
-    
-    // Étape 0: Idée sélectionnée
-    if (project.idea) {
-      newCompletedSteps.push(0);
-    }
-    
-    // Étape 1: Script généré
-    if (project.script) {
-      newCompletedSteps.push(1);
-    }
-    
-    // Étape 2: Analyse terminée
-    if (project.analysis) {
-      newCompletedSteps.push(2);
-    }
-    
-    // Étape 3: Métadonnées générées
-    if (project.metadata) {
-      newCompletedSteps.push(3);
-    }
-    
-    setCompletedSteps(newCompletedSteps);
-    
-    // Définir l'étape actuelle en fonction de l'avancement du projet
-    if (project.metadata) {
-      setCurrentStep(3);
-    } else if (project.analysis) {
-      setCurrentStep(3);
-    } else if (project.script) {
-      setCurrentStep(2);
+    // Si c'est le projet gratuit existant ou si l'utilisateur a une licence
+    if (hasLicense || project.id === savedProjects[0]?.id) {
+      setActiveProjectId(project.id);
+      setProjectTitle(project.title);
+      setSelectedIdea(project.idea);
+      setGeneratedScript(project.script);
+      setScriptType(project.scriptType);
+      setScriptAnalysis(project.analysis);
+      
+      // Déterminer à quelle étape du flux de travail le projet en est
+      const newCompletedSteps: number[] = [];
+      
+      // Étape 0: Idée sélectionnée
+      if (project.idea) {
+        newCompletedSteps.push(0);
+      }
+      
+      // Étape 1: Script généré
+      if (project.script) {
+        newCompletedSteps.push(1);
+      }
+      
+      // Étape 2: Analyse terminée
+      if (project.analysis) {
+        newCompletedSteps.push(2);
+      }
+      
+      // Étape 3: Métadonnées générées
+      if (project.metadata) {
+        newCompletedSteps.push(3);
+      }
+      
+      setCompletedSteps(newCompletedSteps);
+      
+      // Définir l'étape actuelle en fonction de l'avancement du projet
+      if (project.metadata) {
+        setCurrentStep(3);
+      } else if (project.analysis) {
+        setCurrentStep(3);
+      } else if (project.script) {
+        setCurrentStep(2);
+      } else {
+        setCurrentStep(1);
+      }
+      
+      setActiveTab('create');
     } else {
-      setCurrentStep(1);
+      // Utilisateur sans licence essayant d'accéder à un projet autre que son projet gratuit
+      setIsLicenseDialogOpen(true);
     }
-    
-    setActiveTab('create');
   };
 
   const handleDeleteProject = async (projectId: string) => {
@@ -384,6 +416,26 @@ const GenerateursPage = () => {
           </div>
         </div>
 
+        {!hasLicense && savedProjects.length > 0 && (
+          <div className="flex items-center justify-between p-4 bg-amber-100 border border-amber-200 rounded-lg mb-4">
+            <div className="flex items-center gap-2">
+              <LockKeyhole size={18} className="text-amber-600" />
+              <div>
+                <p className="text-amber-800 text-sm font-medium">Mode gratuit: 1 projet</p>
+                <p className="text-amber-700 text-xs">Activez une licence pour des projets illimités</p>
+              </div>
+            </div>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-200"
+              onClick={() => setIsLicenseDialogOpen(true)}
+            >
+              Activer
+            </Button>
+          </div>
+        )}
+
         {isAuthenticated && (
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'create' | 'projects')}>
             <TabsList className="grid w-full grid-cols-2">
@@ -420,7 +472,7 @@ const GenerateursPage = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {savedProjects.map((project) => (
+                  {savedProjects.map((project, index) => (
                     <div key={project.id} className="bg-tva-surface/50 p-4 rounded-lg hover:bg-tva-surface/80 transition-all">
                       <div className="flex justify-between items-start">
                         <div className="space-y-1">
@@ -429,6 +481,11 @@ const GenerateursPage = () => {
                             <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(project.status)}`}>
                               {getStatusLabel(project.status)}
                             </span>
+                            {!hasLicense && index === 0 && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                Gratuit
+                              </span>
+                            )}
                           </div>
                           <p className="text-xs text-tva-text/70">{project.description}</p>
                         </div>
@@ -578,6 +635,48 @@ const GenerateursPage = () => {
               }}
             >
               Sauvegarder
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog pour la limite de projet */}
+      <Dialog open={isLicenseDialogOpen} onOpenChange={setIsLicenseDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Limite atteinte</DialogTitle>
+            <DialogDescription>
+              Vous avez atteint la limite d'un projet gratuit. Activez une licence pour créer des projets illimités et accéder à toutes les fonctionnalités.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="flex items-center justify-between p-4 bg-tva-surface rounded-lg">
+              <div>
+                <p className="font-medium">Plan gratuit</p>
+                <p className="text-sm text-tva-text/70">1 projet</p>
+              </div>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                Actif
+              </span>
+            </div>
+            
+            <div className="flex items-center justify-between p-4 bg-tva-surface/50 rounded-lg border-2 border-tva-primary/30">
+              <div>
+                <p className="font-medium">Plan premium</p>
+                <p className="text-sm text-tva-text/70">Projets illimités + toutes les fonctionnalités</p>
+              </div>
+              <span className="text-xs font-medium">29,99€/mois</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsLicenseDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={() => {
+              setIsLicenseDialogOpen(false);
+              window.location.href = '/telechargement';
+            }}>
+              Obtenir une licence
             </Button>
           </DialogFooter>
         </DialogContent>

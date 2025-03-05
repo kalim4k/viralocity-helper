@@ -34,7 +34,8 @@ export const saveGeneratedProject = async (
     description: string;
     hashtags: string[];
   },
-  status: string = 'draft'
+  status: string = 'draft',
+  existingProjectId?: string
 ) => {
   try {
     const { data: currentUser } = await supabase.auth.getUser();
@@ -43,25 +44,52 @@ export const saveGeneratedProject = async (
       throw new Error("Utilisateur non authentifié");
     }
     
-    const { data, error } = await supabase
-      .from('generated_projects')
-      .insert({
-        user_id: currentUser.user.id,
-        title,
-        description: idea.description,
-        idea,
-        script,
-        script_type: scriptType,
-        analysis: analysis || null,
-        metadata: metadata || null,
-        status
-      })
-      .select('id')
-      .single();
-    
-    if (error) throw error;
-    
-    return data.id;
+    // Si un ID de projet existant est fourni, mettre à jour ce projet
+    if (existingProjectId) {
+      const { data, error } = await supabase
+        .from('generated_projects')
+        .update({
+          title,
+          description: idea.description,
+          idea,
+          script,
+          script_type: scriptType,
+          analysis: analysis || null,
+          metadata: metadata || null,
+          status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingProjectId)
+        .eq('user_id', currentUser.user.id)
+        .select('id')
+        .single();
+      
+      if (error) throw error;
+      
+      return data.id;
+    } 
+    // Sinon, créer un nouveau projet
+    else {
+      const { data, error } = await supabase
+        .from('generated_projects')
+        .insert({
+          user_id: currentUser.user.id,
+          title,
+          description: idea.description,
+          idea,
+          script,
+          script_type: scriptType,
+          analysis: analysis || null,
+          metadata: metadata || null,
+          status
+        })
+        .select('id')
+        .single();
+      
+      if (error) throw error;
+      
+      return data.id;
+    }
   } catch (error) {
     console.error('Erreur lors de la sauvegarde du projet:', error);
     throw error;

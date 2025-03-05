@@ -68,6 +68,11 @@ export const ProtectedLicenseRoute: React.FC<ProtectedLicenseRouteProps> = ({ ch
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
+  // Special case for Générateurs page - allow access without license
+  if (location.pathname === '/generateurs') {
+    return <>{children}</>;
+  }
+
   // Show license required page if no license
   if (!shouldShowContent && !hasLicense && !isLoadingLicense) {
     console.log(`Accès refusé à ${location.pathname} - Licence requise`);
