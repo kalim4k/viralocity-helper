@@ -13,6 +13,15 @@ interface CachedLicenseState {
 export const useCachedLicense = () => {
   const { refreshLicenseStatus, hasLicense, isLoadingLicense } = useLicense();
   const [isVerifying, setIsVerifying] = useState(false);
+  const [cachedLicenseStatus, setCachedLicenseStatus] = useState<boolean | null>(null);
+  
+  // Initialize cached license status on component mount
+  useEffect(() => {
+    const cachedData = getLicenseFromCache();
+    if (cachedData) {
+      setCachedLicenseStatus(cachedData.hasLicense);
+    }
+  }, []);
 
   const getLicenseFromCache = useCallback((): CachedLicenseState | null => {
     const cachedData = localStorage.getItem('license_status');
@@ -39,6 +48,7 @@ export const useCachedLicense = () => {
       timestamp: Date.now()
     };
     localStorage.setItem('license_status', JSON.stringify(data));
+    setCachedLicenseStatus(licenseStatus);
   }, []);
 
   const verifyLicense = useCallback(async () => {
@@ -74,6 +84,6 @@ export const useCachedLicense = () => {
   return {
     verifyLicense,
     isVerifying,
-    cachedHasLicense: getLicenseFromCache()?.hasLicense ?? hasLicense
+    cachedHasLicense: cachedLicenseStatus ?? hasLicense
   };
 };

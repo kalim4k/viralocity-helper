@@ -17,45 +17,40 @@ export const ProtectedLicenseRoute: React.FC<ProtectedLicenseRouteProps> = ({ ch
   const { hasLicense, isLoadingLicense } = useLicense();
   const { verifyLicense, cachedHasLicense } = useCachedLicense();
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
-  const [licenseVerified, setLicenseVerified] = useState(false);
+  const [shouldShowContent, setShouldShowContent] = useState(false);
 
-  // Initial setup - only run once when component mounts
+  // Initial setup and cached license check
   useEffect(() => {
-    let isMounted = true;
-    
-    const checkAccess = async () => {
-      if (!isAuthenticated || isLoading) return;
-      
-      try {
-        // Only verify from server if we haven't verified yet since mounting
-        if (!licenseVerified) {
-          console.log("Vérification initiale de la licence");
+    if (!isLoading && isAuthenticated) {
+      // First use the cached value to make a quick decision
+      if (cachedHasLicense) {
+        setShouldShowContent(true);
+        setIsCheckingAccess(false);
+      } else {
+        // If no cache or no license in cache, verify from the server
+        const checkLicense = async () => {
           await verifyLicense();
-          if (isMounted) setLicenseVerified(true);
-        }
-      } catch (err) {
-        console.error("Erreur lors de la vérification de la licence:", err);
-      } finally {
-        if (isMounted) setIsCheckingAccess(false);
+          setIsCheckingAccess(false);
+        };
+        checkLicense();
       }
-    };
-    
-    checkAccess();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [isAuthenticated, isLoading, verifyLicense, licenseVerified]);
-
-  // When loading states change, update checking state
-  useEffect(() => {
-    if (!isLoading && !isLoadingLicense) {
+    } else if (!isLoading) {
+      // Not authenticated and not loading
       setIsCheckingAccess(false);
     }
-  }, [isLoading, isLoadingLicense]);
+  }, [isAuthenticated, isLoading, cachedHasLicense, verifyLicense]);
+
+  // Update based on license status changes
+  useEffect(() => {
+    if (!isLoadingLicense) {
+      if (hasLicense) {
+        setShouldShowContent(true);
+      }
+    }
+  }, [hasLicense, isLoadingLicense]);
 
   // Show loading state while checking access
-  if ((isLoading || isLoadingLicense || isCheckingAccess) && !licenseVerified) {
+  if (isLoading || (isCheckingAccess && !cachedHasLicense)) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="flex flex-col items-center gap-2">
@@ -74,12 +69,11 @@ export const ProtectedLicenseRoute: React.FC<ProtectedLicenseRouteProps> = ({ ch
   }
 
   // Show license required page if no license
-  // Use cached value first for faster rendering
-  if (!cachedHasLicense && !hasLicense) {
+  if (!shouldShowContent && !hasLicense && !isLoadingLicense) {
     console.log(`Accès refusé à ${location.pathname} - Licence requise`);
     return <LicenseRequired />;
   }
 
-  // User is authenticated and has a license
+  // User is authenticated and has a license (or we're showing cached content)
   return <>{children}</>;
 };
