@@ -1,117 +1,160 @@
 
-import { TikTokProfile } from '@/components/TikTokConnectModal';
-import { RapidAPIResponse } from '@/types/tiktok.types';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
- * Maps the RapidAPI response to our TikTokProfile model
- * @param response The raw API response
- * @param username Original username requested
- * @returns A formatted TikTokProfile object
+ * Mappe les données brutes de TikTok en structure plus propre
  */
-export function mapToTikTokProfile(response: RapidAPIResponse, username: string): TikTokProfile {
-  console.log('Mapping API response to TikTokProfile');
+
+import { TikTokProfile, TikTokVideo } from "@/types/tiktok.types";
+
+/**
+ * Extrait l'avatar URL d'un objet complexe
+ * @param avatar Objet avatar TikTok
+ * @returns URL de l'avatar ou URL par défaut
+ */
+function extractAvatarUrl(avatar: any): string {
+  if (!avatar) return '/placeholder.svg';
   
-  // Validate the response structure
-  if (!response.data || !response.data.owner || !response.data.owner.user_info) {
-    console.error('Invalid API response structure:', JSON.stringify(response, null, 2));
-    throw new Error('Profil TikTok introuvable. Vérifiez le nom d\'utilisateur et réessayez.');
+  // Si l'objet avatar contient url_list, on prend la première URL
+  if (avatar.url_list && Array.isArray(avatar.url_list) && avatar.url_list.length > 0) {
+    return avatar.url_list[0];
   }
   
-  // Get user info from the correct path
-  const userInfo = response.data.owner.user_info;
-  console.log('User info found:', userInfo);
+  // Si l'objet contient directement une propriété url
+  if (avatar.url) return avatar.url;
   
-  // Clean the username (remove @ if present)
-  const cleanUsername = username.replace('@', '');
+  // Fallback sur une image par défaut
+  return '/placeholder.svg';
+}
+
+/**
+ * Mappe les données brutes de l'API TikTok vers un format structuré
+ * @param rawData Données brutes de l'API
+ * @returns Profil TikTok formaté
+ */
+export function mapTikTokProfileData(rawData: any): TikTokProfile | null {
+  if (!rawData) return null;
   
-  // Extract real videos from itemList if available
-  const videos = [];
-  let videoCount = 0;
-  
-  if (response.data.itemList && response.data.itemList.length > 0) {
-    videoCount = response.data.itemList.length;
-    console.log(`Found ${videoCount} videos`);
+  try {
+    // Déterminer où se trouve la donnée user selon que c'est TikTok Browser API ou le site TikTok
+    let userData = rawData.user || rawData;
     
-    // Take up to 3 videos from the response
-    const videoItems = response.data.itemList.slice(0, 3);
-    
-    for (const item of videoItems) {
-      if (item && item.video && item.video.cover) {
-        videos.push({
-          id: item.id || String(Math.random()),
-          thumbnail: item.video.cover || 'https://picsum.photos/200/350?random=' + videos.length,
-          views: item.stats?.playCount || Math.floor(Math.random() * 50000),
-          title: item.desc || 'Vidéo TikTok'
-        });
-      }
+    // Si les données viennent de la structure webapp.user
+    if (rawData.webapp && rawData.webapp.user) {
+      userData = rawData.webapp.user;
     }
-  } else {
-    console.log('No videos found in API response, using placeholders');
-    // Generate 3 placeholder videos if no videos in the response
-    videos.push(
-      {
-        id: '1',
-        thumbnail: 'https://picsum.photos/200/350?random=1',
-        views: Math.floor(Math.random() * 50000),
-        title: 'Mon dernier tutoriel #viral'
+    
+    // Si les données sont imbriquées dans une sous-propriété user
+    if (userData.user) {
+      userData = userData.user;
+    }
+    
+    // Déterminer si le profil est vérifié
+    // Note: La propriété verified peut être à des niveaux différents selon la source
+    const isVerified = 
+      userData.verified || 
+      (userData.is_verified && userData.is_verified !== "0") || 
+      false;
+    
+    // Extraire les stats
+    const statsData = userData.stats || {};
+    
+    // Calculer le taux d'engagement si possible
+    let engagementRate = 0;
+    const followerCount = Number(statsData.followerCount || statsData.follower_count || 0);
+    const videoCount = Number(statsData.videoCount || statsData.video_count || 0);
+    const heartCount = Number(statsData.heartCount || statsData.heart_count || statsData.digg_count || 0);
+    
+    if (followerCount > 0 && videoCount > 0) {
+      engagementRate = (heartCount / videoCount) / followerCount * 100;
+    }
+    
+    // Construire l'objet de profile
+    return {
+      id: userData.id || userData.uid || '',
+      uniqueId: userData.uniqueId || userData.unique_id || '',
+      nickname: userData.nickname || '',
+      bio: userData.signature || '',
+      avatarUrl: extractAvatarUrl(userData.avatarThumb || userData.avatar_thumb),
+      verified: isVerified,
+      following: Number(statsData.followingCount || statsData.following_count || 0),
+      followers: followerCount,
+      likes: heartCount,
+      videos: videoCount,
+      engagementRate: parseFloat(engagementRate.toFixed(2)),
+      displayStats: {
+        followers: formatNumber(followerCount),
+        following: formatNumber(Number(statsData.followingCount || statsData.following_count || 0)),
+        likes: formatNumber(heartCount),
+        posts: formatNumber(videoCount),
       },
-      {
-        id: '2',
-        thumbnail: 'https://picsum.photos/200/350?random=2',
-        views: Math.floor(Math.random() * 50000),
-        title: 'Comment devenir viral sur TikTok'
-      },
-      {
-        id: '3',
-        thumbnail: 'https://picsum.photos/200/350?random=3',
-        views: Math.floor(Math.random() * 50000),
-        title: 'Mes astuces pour gagner des followers'
-      }
-    );
+    };
+  } catch (error) {
+    console.error('Error mapping TikTok profile data:', error);
+    return null;
   }
+}
+
+/**
+ * Mappe les données brutes de vidéos TikTok vers un format structuré
+ * @param rawVideos Données brutes des vidéos
+ * @returns Liste de vidéos TikTok formatées
+ */
+export function mapTikTokVideosData(rawVideos: any[]): TikTokVideo[] {
+  if (!rawVideos || !Array.isArray(rawVideos)) return [];
   
-  // Find the likes/hearts count from different possible locations
-  // The API may provide heart count in several different fields or formats
-  let likesCount = 0;
-  
-  // Attempt to find likes from various possible fields
-  if (userInfo.heartCount !== undefined) {
-    likesCount = Number(userInfo.heartCount);
-  } else if (userInfo.heart !== undefined) {
-    likesCount = Number(userInfo.heart);
-  } else if (userInfo.total_favorited !== undefined) {
-    likesCount = Number(userInfo.total_favorited);
-  } else {
-    // If we can't find likes in the user info, use a default
-    likesCount = 0;
-    console.log('No likes count found in API response');
+  try {
+    return rawVideos
+      .filter(video => video && (video.id || video.video_id))
+      .map(video => {
+        // Extraire le cover
+        let coverUrl = '/placeholder.svg';
+        if (video.cover && video.cover.url_list && video.cover.url_list.length > 0) {
+          coverUrl = video.cover.url_list[0];
+        } else if (video.cover) {
+          coverUrl = video.cover;
+        } else if (video.thumbnail_url) {
+          coverUrl = video.thumbnail_url;
+        }
+        
+        return {
+          id: video.id || video.video_id || '',
+          description: video.desc || video.description || '',
+          createTime: video.create_time || Date.now() / 1000,
+          coverUrl: coverUrl,
+          videoUrl: video.play || video.video_url || '',
+          shareUrl: video.share_url || '',
+          stats: {
+            commentCount: Number(video.comment_count || video.stats?.commentCount || 0),
+            playCount: Number(video.play_count || video.stats?.playCount || 0),
+            shareCount: Number(video.share_count || video.stats?.shareCount || 0),
+            likeCount: Number(video.like_count || video.digg_count || video.stats?.diggCount || 0),
+          },
+          displayStats: {
+            comments: formatNumber(Number(video.comment_count || video.stats?.commentCount || 0)),
+            plays: formatNumber(Number(video.play_count || video.stats?.playCount || 0)),
+            shares: formatNumber(Number(video.share_count || video.stats?.shareCount || 0)),
+            likes: formatNumber(Number(video.like_count || video.digg_count || video.stats?.diggCount || 0)),
+          }
+        };
+      });
+  } catch (error) {
+    console.error('Error mapping TikTok videos data:', error);
+    return [];
   }
-  
-  // Ensure follower_count is a number
-  const followerCount = userInfo.follower_count !== undefined ? Number(userInfo.follower_count) : 0;
-  
-  // Get avatar URL with a fallback
-  const avatarUrl = userInfo.avatar_thumb?.url_list?.[0] || 'https://placehold.co/200x200?text=No+Avatar';
-  
-  // Determine if verified is present or use a default
-  const isVerified = userInfo.verified !== undefined ? Boolean(userInfo.verified) : false;
-  
-  // Create the profile with all the available information
-  const profile: TikTokProfile = {
-    username: `@${userInfo.unique_id || cleanUsername}`,
-    displayName: userInfo.nickname || cleanUsername,
-    nickname: userInfo.nickname || cleanUsername,
-    avatar: avatarUrl,
-    avatarUrl: avatarUrl,
-    followers: followerCount,
-    following: 0, // This will be updated if available in the API
-    likes: likesCount,
-    bio: userInfo.signature || '',
-    verified: isVerified, // Use the value we determined above
-    videos: videos,
-    videoCount: videoCount
-  };
-  
-  console.log('Mapping complete:', profile);
-  return profile;
+}
+
+/**
+ * Formate un nombre en chaîne plus lisible (K, M)
+ * @param num Nombre à formater
+ * @returns Chaîne formatée
+ */
+function formatNumber(num: number): string {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  }
+  return num.toString();
 }

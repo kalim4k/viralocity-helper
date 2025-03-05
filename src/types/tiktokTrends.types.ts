@@ -65,5 +65,89 @@ export interface TikTokTrendingCreatorsResponse {
   }
 }
 
+// Point de données pour un graphique de tendance
+export interface TrendPoint {
+  time: number;
+  value: number;
+}
+
+// Élément associé pour les sons et hashtags
+export interface RelatedItem {
+  item_id: number | string;
+  cover_uri: string;
+}
+
+// Son en tendance
+export interface TrendingSong {
+  author: string;
+  clip_id: string;
+  country_code: string;
+  cover: string;
+  duration: number;
+  link: string;
+  rank: number;
+  song_id: string;
+  title: string;
+  trend: TrendPoint[];
+  url_title: string;
+  related_items: RelatedItem[] | null;
+}
+
+// Réponse API pour les sons en tendance
+export interface TikTokTrendingSongsResponse {
+  code: number;
+  msg: string;
+  request_id: string;
+  data: {
+    pagination: {
+      page: number;
+      size: number;
+      total: number;
+      has_more: boolean;
+    };
+    sound_list: TrendingSong[];
+  }
+}
+
+// Créateur associé à un hashtag
+export interface HashtagCreator {
+  nick_name: string;
+  avatar_url: string;
+}
+
+// Hashtag en tendance
+export interface TrendingHashtag {
+  hashtag_id: string;
+  hashtag_name: string;
+  country_info: {
+    id: string;
+    value: string;
+    label: string;
+  };
+  industry_info?: {
+    id: number;
+    value: string;
+    label: string;
+  };
+  is_promoted: boolean;
+  trend: TrendPoint[];
+  creators: HashtagCreator[];
+  publish_cnt: number;
+  video_views: number;
+  rank: number;
+  rank_diff: number;
+  rank_diff_type: number;
+}
+
+// Réponse API pour les hashtags en tendance
+export interface TikTokTrendingHashtagsResponse {
+  code: number;
+  msg: string;
+  request_id: string;
+  data: {
+    list: TrendingHashtag[];
+  }
+}
+
 // Types exportés pour l'usage dans les composants
-export type { TrendingVideo, TrendingCreator };
+export { TrendingVideo, TrendingCreator, TrendingSong, TrendingHashtag };

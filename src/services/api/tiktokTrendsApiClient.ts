@@ -1,5 +1,10 @@
 
-import { TikTokTrendingVideosResponse, TikTokTrendingCreatorsResponse } from '@/types/tiktokTrends.types';
+import { 
+  TikTokTrendingVideosResponse, 
+  TikTokTrendingCreatorsResponse,
+  TikTokTrendingSongsResponse,
+  TikTokTrendingHashtagsResponse
+} from '@/types/tiktokTrends.types';
 
 // Configuration de l'API
 const API_CONFIG = {
@@ -87,6 +92,90 @@ export async function fetchTrendingCreators(
     return result;
   } catch (error) {
     console.error('Error fetching trending creators:', error);
+    throw error;
+  }
+}
+
+/**
+ * Récupère les chansons en tendance depuis l'API RapidAPI
+ * @param country Code pays (ex: US, FR)
+ * @param limit Nombre de résultats
+ * @param page Numéro de page
+ * @returns Promise avec les données de chansons en tendance
+ */
+export async function fetchTrendingSongs(
+  country: string = 'US', 
+  limit: number = 20, 
+  page: number = 1
+): Promise<TikTokTrendingSongsResponse> {
+  console.log(`API Trends: Fetching trending songs for country: ${country}`);
+  
+  try {
+    const response = await fetch(
+      `https://${API_CONFIG.apiHost}/api/trending/song?page=${page}&limit=${limit}&period=7&rank_type=popular&country=${country}`, 
+      {
+        method: 'GET',
+        headers: {
+          'x-rapidapi-host': API_CONFIG.apiHost,
+          'x-rapidapi-key': API_CONFIG.apiKey
+        }
+      }
+    );
+    
+    if (!response.ok) {
+      const statusCode = response.status;
+      console.error(`API responded with status: ${statusCode}`);
+      throw new Error(`Erreur lors de la récupération des chansons tendance: ${statusCode}`);
+    }
+    
+    const result = await response.json();
+    console.log('Trending songs data received:', result);
+    
+    return result;
+  } catch (error) {
+    console.error('Error fetching trending songs:', error);
+    throw error;
+  }
+}
+
+/**
+ * Récupère les hashtags en tendance depuis l'API RapidAPI
+ * @param country Code pays (ex: US, FR)
+ * @param limit Nombre de résultats
+ * @param page Numéro de page
+ * @returns Promise avec les données de hashtags en tendance
+ */
+export async function fetchTrendingHashtags(
+  country: string = 'US', 
+  limit: number = 20, 
+  page: number = 1
+): Promise<TikTokTrendingHashtagsResponse> {
+  console.log(`API Trends: Fetching trending hashtags for country: ${country}`);
+  
+  try {
+    const response = await fetch(
+      `https://${API_CONFIG.apiHost}/api/trending/hashtag?page=${page}&limit=${limit}&period=120&country=${country}&sort_by=popular`, 
+      {
+        method: 'GET',
+        headers: {
+          'x-rapidapi-host': API_CONFIG.apiHost,
+          'x-rapidapi-key': API_CONFIG.apiKey
+        }
+      }
+    );
+    
+    if (!response.ok) {
+      const statusCode = response.status;
+      console.error(`API responded with status: ${statusCode}`);
+      throw new Error(`Erreur lors de la récupération des hashtags tendance: ${statusCode}`);
+    }
+    
+    const result = await response.json();
+    console.log('Trending hashtags data received:', result);
+    
+    return result;
+  } catch (error) {
+    console.error('Error fetching trending hashtags:', error);
     throw error;
   }
 }
