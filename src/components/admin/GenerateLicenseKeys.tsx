@@ -13,8 +13,10 @@ import {
 import { Key, Copy, Download, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const GenerateLicenseKeys: React.FC = () => {
+  const { user } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [price, setPrice] = useState<number | ''>('');
   const [generatedKeys, setGeneratedKeys] = useState<string[]>([]);
@@ -43,6 +45,11 @@ export const GenerateLicenseKeys: React.FC = () => {
       return;
     }
 
+    if (!user) {
+      toast.error('Vous devez être connecté pour générer des clés');
+      return;
+    }
+
     setIsGenerating(true);
     const keys: string[] = [];
     const keysToInsert = [];
@@ -54,7 +61,9 @@ export const GenerateLicenseKeys: React.FC = () => {
         keys.push(licenseKey);
         keysToInsert.push({
           license_key: licenseKey,
-          price: price || null
+          price: price || null,
+          status: 'inactive',
+          admin_id: user.id
         });
       }
 
@@ -63,7 +72,10 @@ export const GenerateLicenseKeys: React.FC = () => {
         .from('licenses')
         .insert(keysToInsert);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting license keys:', error);
+        throw error;
+      }
 
       setGeneratedKeys(keys);
       toast.success(`${quantity} clé${quantity > 1 ? 's' : ''} de licence générée${quantity > 1 ? 's' : ''}`);
