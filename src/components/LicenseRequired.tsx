@@ -1,18 +1,49 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppLayout } from './AppLayout';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { useLicense } from '@/contexts/LicenseContext';
 import { ArrowRight, Key, AlertTriangle, CheckCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Alert, AlertDescription } from './ui/alert';
+
+// Page descriptions for each premium route
+const PAGE_INFO = {
+  '/generateurs': {
+    title: 'Générateurs de Contenu',
+    description: 'Créez facilement des scripts, des descriptions et des légendes optimisées pour TikTok grâce à notre outil d\'IA. Débloquez cette fonctionnalité pour gagner du temps et améliorer l\'engagement.'
+  },
+  '/revenue': {
+    title: 'Statistiques de Revenus',
+    description: 'Analysez vos gains, suivez vos performances et obtenez des recommandations personnalisées pour maximiser vos revenus sur TikTok.'
+  },
+  '/analyse': {
+    title: 'Analyse de Profil',
+    description: 'Obtenez une analyse détaillée de votre profil TikTok avec des recommandations pour améliorer votre visibilité, augmenter vos abonnés et optimiser votre contenu.'
+  },
+  '/telechargement': {
+    title: 'Téléchargements',
+    description: 'Accédez à une bibliothèque complète de ressources premium: modèles de vidéos, effets spéciaux, musiques libres de droits et formations exclusives pour réussir sur TikTok.'
+  },
+  '/tendance': {
+    title: 'Tendances TikTok',
+    description: 'Découvrez en temps réel les tendances TikTok: vidéos virales, hashtags populaires, défis en vogue et sons tendance pour rester à la pointe et créer du contenu pertinent.'
+  }
+};
 
 export const LicenseRequired: React.FC = () => {
   const [licenseKey, setLicenseKey] = useState('');
   const [isActivating, setIsActivating] = useState(false);
   const [activationError, setActivationError] = useState<string | null>(null);
   const { activateLicense } = useLicense();
+  const location = useLocation();
+  
+  // Get current page info based on location
+  const currentPageInfo = PAGE_INFO[location.pathname] || {
+    title: 'Fonctionnalité Premium',
+    description: 'Cette fonctionnalité n\'est disponible qu\'avec une licence active. Activez votre licence pour y accéder.'
+  };
 
   const handleActivate = async () => {
     if (!licenseKey.trim()) {
@@ -45,9 +76,9 @@ export const LicenseRequired: React.FC = () => {
           <div className="w-16 h-16 mx-auto bg-tva-surface rounded-full flex items-center justify-center">
             <Key size={24} className="text-tva-primary" />
           </div>
-          <h1 className="text-2xl font-bold">Accès Limité</h1>
+          <h1 className="text-2xl font-bold">{currentPageInfo.title}</h1>
           <p className="text-tva-text/70">
-            Cette fonctionnalité n'est disponible qu'avec une licence active
+            {currentPageInfo.description}
           </p>
         </div>
 
