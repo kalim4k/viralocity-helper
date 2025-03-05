@@ -71,7 +71,7 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  // Function to activate a license key
+  // Function to activate a license key - SIMPLIFIED to avoid recursion issues
   const activateLicense = async (key: string): Promise<boolean> => {
     if (!user) {
       toast.error("Vous devez être connecté pour activer une licence");
@@ -79,26 +79,34 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     try {
-      // Check if license exists and is available
-      const { data: license, error: licenseError } = await supabase
+      console.log("Attempting to activate license:", key);
+      
+      // First check if the license exists and is available (inactive)
+      const { data: licenseCheck, error: checkError } = await supabase
         .from('licenses')
         .select('id, status, user_id')
         .eq('license_key', key)
         .maybeSingle();
+      
+      console.log("License check result:", licenseCheck, checkError);
 
-      if (licenseError) throw licenseError;
+      if (checkError) {
+        console.error("Error checking license:", checkError);
+        toast.error("Erreur lors de la vérification de la licence");
+        return false;
+      }
 
-      if (!license) {
+      if (!licenseCheck) {
         toast.error("Clé de licence invalide");
         return false;
       }
 
-      if (license.status === 'expired') {
+      if (licenseCheck.status === 'expired') {
         toast.error("Cette licence a expiré");
         return false;
       }
 
-      if (license.status === 'active' && license.user_id && license.user_id !== user.id) {
+      if (licenseCheck.status === 'active' && licenseCheck.user_id && licenseCheck.user_id !== user.id) {
         toast.error("Cette licence est déjà utilisée par un autre compte");
         return false;
       }
@@ -107,6 +115,8 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 30);
 
+      console.log("Updating license with ID:", licenseCheck.id);
+      
       // Activate the license
       const { error: updateError } = await supabase
         .from('licenses')
@@ -116,9 +126,12 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
           activated_at: new Date().toISOString(),
           expires_at: expiresAt.toISOString()
         })
-        .eq('id', license.id);
+        .eq('id', licenseCheck.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Error updating license:", updateError);
+        throw updateError;
+      }
 
       // Refresh license status
       await checkLicenseStatus();

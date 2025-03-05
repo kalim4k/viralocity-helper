@@ -14,6 +14,7 @@ import { Key, Copy, Download, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const GenerateLicenseKeys: React.FC = () => {
   const { user } = useAuth();
@@ -21,6 +22,7 @@ export const GenerateLicenseKeys: React.FC = () => {
   const [price, setPrice] = useState<number | ''>('');
   const [generatedKeys, setGeneratedKeys] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   // Generate a random license key
   const generateRandomKey = () => {
@@ -51,6 +53,7 @@ export const GenerateLicenseKeys: React.FC = () => {
     }
 
     setIsGenerating(true);
+    setGenerationError(null);
     const keys: string[] = [];
     const keysToInsert = [];
 
@@ -67,6 +70,8 @@ export const GenerateLicenseKeys: React.FC = () => {
         });
       }
 
+      console.log("Inserting license keys:", keysToInsert);
+
       // Insert keys into database
       const { error } = await supabase
         .from('licenses')
@@ -74,6 +79,7 @@ export const GenerateLicenseKeys: React.FC = () => {
 
       if (error) {
         console.error('Error inserting license keys:', error);
+        setGenerationError(`Erreur lors de l'insertion des clés: ${error.message}`);
         throw error;
       }
 
@@ -81,7 +87,9 @@ export const GenerateLicenseKeys: React.FC = () => {
       toast.success(`${quantity} clé${quantity > 1 ? 's' : ''} de licence générée${quantity > 1 ? 's' : ''}`);
     } catch (error) {
       console.error('Error generating license keys:', error);
-      toast.error('Erreur lors de la génération des clés de licence');
+      if (!generationError) {
+        setGenerationError('Erreur lors de la génération des clés de licence');
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -120,6 +128,12 @@ export const GenerateLicenseKeys: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {generationError && (
+          <Alert variant="destructive">
+            <AlertDescription>{generationError}</AlertDescription>
+          </Alert>
+        )}
+        
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label htmlFor="quantity" className="text-sm font-medium">

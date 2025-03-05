@@ -6,18 +6,34 @@ import { Button } from './ui/button';
 import { useLicense } from '@/contexts/LicenseContext';
 import { ArrowRight, Key, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Alert, AlertDescription } from './ui/alert';
 
 export const LicenseRequired: React.FC = () => {
   const [licenseKey, setLicenseKey] = useState('');
   const [isActivating, setIsActivating] = useState(false);
+  const [activationError, setActivationError] = useState<string | null>(null);
   const { activateLicense } = useLicense();
 
   const handleActivate = async () => {
     if (!licenseKey.trim()) return;
     
     setIsActivating(true);
-    await activateLicense(licenseKey.trim());
-    setIsActivating(false);
+    setActivationError(null);
+    
+    try {
+      console.log("Attempting to activate license on LicenseRequired page:", licenseKey.trim());
+      const success = await activateLicense(licenseKey.trim());
+      
+      if (!success) {
+        // L'erreur a déjà été affichée par le toast dans la fonction activateLicense
+        setActivationError("Échec de l'activation. Veuillez vérifier que votre clé est valide.");
+      }
+    } catch (error) {
+      console.error('Error during license activation:', error);
+      setActivationError("Une erreur inattendue s'est produite. Veuillez réessayer plus tard.");
+    } finally {
+      setIsActivating(false);
+    }
   };
 
   return (
@@ -42,6 +58,12 @@ export const LicenseRequired: React.FC = () => {
               </p>
             </div>
           </div>
+
+          {activationError && (
+            <Alert variant="destructive">
+              <AlertDescription>{activationError}</AlertDescription>
+            </Alert>
+          )}
 
           <div className="space-y-2">
             <label htmlFor="licenseKey" className="text-sm font-medium">

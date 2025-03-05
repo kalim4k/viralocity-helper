@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { useNavigate } from 'react-router-dom';
@@ -30,8 +29,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// Create a TikTok icon component
 const TiktokIcon = () => (
   <svg 
     width="24" 
@@ -58,6 +57,7 @@ const ProfilePage = () => {
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [licenseKey, setLicenseKey] = useState('');
   const [isActivatingLicense, setIsActivatingLicense] = useState(false);
+  const [activationError, setActivationError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -101,12 +101,22 @@ const ProfilePage = () => {
     }
 
     setIsActivatingLicense(true);
+    setActivationError(null);
+    
     try {
+      console.log("Attempting to activate license:", licenseKey.trim());
       const success = await activateLicense(licenseKey.trim());
+      
       if (success) {
         setLicenseKey('');
         await refreshLicenseStatus();
+        setActivationError(null);
+      } else {
+        setActivationError("Échec de l'activation de la licence. Veuillez vérifier votre clé et réessayer.");
       }
+    } catch (error) {
+      console.error("Error during license activation:", error);
+      setActivationError("Une erreur inattendue s'est produite. Veuillez réessayer plus tard.");
     } finally {
       setIsActivatingLicense(false);
     }
@@ -149,6 +159,11 @@ const ProfilePage = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                {activationError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{activationError}</AlertDescription>
+                  </Alert>
+                )}
                 <div className="space-y-2">
                   <label htmlFor="licenseKey" className="text-sm font-medium">
                     Clé de licence
