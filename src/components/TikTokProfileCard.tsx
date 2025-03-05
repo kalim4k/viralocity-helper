@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { UserCheck, LogOut } from 'lucide-react';
 import { TikTokProfile } from './TikTokConnectModal';
@@ -14,7 +13,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { toast } from 'sonner';
 
 interface TikTokProfileCardProps {
   profile: TikTokProfile;
@@ -30,7 +28,6 @@ export const TikTokProfileCard: React.FC<TikTokProfileCardProps> = ({
   const handleDisconnect = () => {
     if (onDisconnect) {
       onDisconnect();
-      toast.success('Compte TikTok déconnecté avec succès');
     }
     setShowDisconnectDialog(false);
   };

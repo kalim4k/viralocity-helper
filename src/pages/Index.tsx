@@ -98,39 +98,14 @@ const Index = () => {
       
       console.log(`Tentative de déconnexion du compte TikTok avec ID: ${profile.id}`);
       
-      const result = await disconnectTikTokAccount(profile.id);
-      console.log("Résultat de la déconnexion:", result);
+      await disconnectTikTokAccount(profile.id);
       
-      if (result.success) {
-        setIsConnected(false);
-        setProfile(null);
-        toast.success('Compte TikTok déconnecté avec succès');
-      } else {
-        throw new Error("La déconnexion a échoué");
-      }
+      setIsConnected(false);
+      setProfile(null);
+      toast.success('Compte TikTok déconnecté avec succès');
     } catch (error) {
       console.error('Erreur lors de la déconnexion du compte TikTok:', error);
-      
-      let errorMessage = "Erreur lors de la déconnexion du compte TikTok";
-      
-      if (error instanceof Error) {
-        errorMessage = `Erreur: ${error.message}`;
-        
-        if ('code' in error && 'details' in error) {
-          const supabaseError = error as any;
-          errorMessage = `Erreur de base de données (${supabaseError.code}): ${supabaseError.details || supabaseError.message}`;
-          
-          if (supabaseError.code === '23503' && supabaseError.details?.includes('tiktok_videos_tiktok_account_id_fkey')) {
-            errorMessage = "Impossible de supprimer le compte car des vidéos y sont encore attachées. Veuillez réessayer.";
-            
-            setTimeout(() => {
-              window.location.reload();
-            }, 3000);
-          }
-        }
-      }
-      
-      toast.error(errorMessage);
+      toast.error("Erreur lors de la déconnexion. Veuillez réessayer.");
     } finally {
       setIsLoading(false);
     }

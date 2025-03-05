@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { TikTokProfile, TikTokVideo } from '@/types/tiktok.types';
 import { formatNumber } from '@/utils/formatters';
@@ -210,88 +209,18 @@ export const getDefaultTikTokAccount = async () => {
 };
 
 /**
- * Déconnecte un compte TikTok
- * Supprime les vidéos associées avant de supprimer le compte
+ * Déconnecte un compte TikTok de l'interface utilisateur
+ * Cette fonction ne supprime aucune donnée en base, elle se contente
+ * de permettre à l'utilisateur de déconnecter visuellement son compte
  */
 export const disconnectTikTokAccount = async (tiktokId: string) => {
   try {
-    const { data: currentUser } = await supabase.auth.getUser();
+    console.log('Déconnexion du compte TikTok (interface seulement):', tiktokId);
     
-    if (!currentUser || !currentUser.user) {
-      throw new Error("Utilisateur non authentifié");
-    }
+    // Cette fonction ne fait plus de suppression en base de données
+    // Elle retourne simplement un succès pour que le front-end puisse
+    // mettre à jour son état et afficher la page initiale
     
-    // Récupérer l'ID du compte à déconnecter
-    const { data: accountToDisconnect, error: accountFetchError } = await supabase
-      .from('tiktok_accounts')
-      .select('id')
-      .eq('user_id', currentUser.user.id)
-      .eq('tiktok_id', tiktokId)
-      .maybeSingle();
-    
-    if (accountFetchError) {
-      console.error('Erreur lors de la récupération du compte TikTok:', accountFetchError);
-      throw new Error("Erreur lors de la récupération du compte TikTok");
-    }
-    
-    if (!accountToDisconnect) {
-      throw new Error("Compte TikTok non trouvé");
-    }
-
-    // Vérifier que l'ID du compte est bien défini
-    const accountId = accountToDisconnect.id;
-    if (!accountId) {
-      throw new Error("ID du compte TikTok invalide");
-    }
-    
-    console.log(`Suppression des vidéos pour le compte: ${accountId}`);
-    
-    // 1. Supprimer d'abord les vidéos associées
-    // Utilisation de l'appel await pour s'assurer que cette opération est terminée avant de continuer
-    const { error: videosError } = await supabase
-      .from('tiktok_videos')
-      .delete()
-      .eq('tiktok_account_id', accountId);
-    
-    if (videosError) {
-      console.error('Erreur lors de la suppression des vidéos:', videosError);
-      throw videosError;
-    }
-    
-    console.log(`Toutes les vidéos ont été supprimées, suppression du compte: ${accountId}`);
-    
-    // Vérification qu'il n'y a plus de vidéos associées à ce compte
-    const { data: remainingVideos, error: checkError } = await supabase
-      .from('tiktok_videos')
-      .select('id')
-      .eq('tiktok_account_id', accountId);
-      
-    if (checkError) {
-      console.error('Erreur lors de la vérification des vidéos restantes:', checkError);
-    } else if (remainingVideos && remainingVideos.length > 0) {
-      console.error(`Il reste encore ${remainingVideos.length} vidéos associées au compte`);
-      
-      // Tentative de suppression forcée
-      for (const video of remainingVideos) {
-        await supabase
-          .from('tiktok_videos')
-          .delete()
-          .eq('id', video.id);
-      }
-    }
-    
-    // 2. Supprimer ensuite le compte
-    const { error: accountError } = await supabase
-      .from('tiktok_accounts')
-      .delete()
-      .eq('id', accountId);
-    
-    if (accountError) {
-      console.error('Erreur lors de la suppression du compte:', accountError);
-      throw accountError;
-    }
-    
-    console.log('Compte TikTok supprimé avec succès');
     return { success: true };
   } catch (error) {
     console.error('Erreur lors de la déconnexion du compte TikTok:', error);
