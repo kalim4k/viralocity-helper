@@ -20,27 +20,34 @@ export async function fetchTikTokProfile(username: string): Promise<TikTokProfil
     
     // Extract author stats if available
     if (result.data.itemList && Array.isArray(result.data.itemList) && result.data.itemList.length > 0) {
-      const firstItem = result.data.itemList[0] as Record<string, unknown>;
-      if ('author' in firstItem && 'authorStats' in firstItem) {
-        console.log('Found authorStats in first video:', firstItem.authorStats);
+      const firstItem = result.data.itemList[0];
+      
+      // Type guard to check if firstItem is a valid object with the expected properties
+      if (firstItem && typeof firstItem === 'object' && firstItem !== null) {
+        const item = firstItem as Record<string, unknown>;
         
-        // If user_info doesn't have heart/likes info, try to get it from authorStats
-        if (result.data.owner.user_info && 
-            !('heart' in result.data.owner.user_info) && 
-            !('heartCount' in result.data.owner.user_info) && 
-            !('total_favorited' in result.data.owner.user_info)) {
+        if ('author' in item && 'authorStats' in item) {
+          console.log('Found authorStats in first video:', item.authorStats);
           
-          // Add likes/hearts from authorStats
-          if (firstItem.authorStats && typeof firstItem.authorStats === 'object') {
-            const authorStats = firstItem.authorStats as Record<string, unknown>;
-            if ('heart' in authorStats) {
-              result.data.owner.user_info.heart = authorStats.heart as number;
-            } else if ('heartCount' in authorStats) {
-              result.data.owner.user_info.heartCount = authorStats.heartCount as number;
+          // If user_info doesn't have heart/likes info, try to get it from authorStats
+          if (result.data.owner.user_info && 
+              !('heart' in result.data.owner.user_info) && 
+              !('heartCount' in result.data.owner.user_info) && 
+              !('total_favorited' in result.data.owner.user_info)) {
+            
+            // Add likes/hearts from authorStats if it's a valid object
+            if (item.authorStats && typeof item.authorStats === 'object' && item.authorStats !== null) {
+              const authorStats = item.authorStats as Record<string, unknown>;
+              
+              if ('heart' in authorStats && typeof authorStats.heart === 'number') {
+                result.data.owner.user_info.heart = authorStats.heart;
+              } else if ('heartCount' in authorStats && typeof authorStats.heartCount === 'number') {
+                result.data.owner.user_info.heartCount = authorStats.heartCount;
+              }
             }
+            
+            console.log('Added heart count to user_info from authorStats');
           }
-          
-          console.log('Added heart count to user_info from authorStats');
         }
       }
     }

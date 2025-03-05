@@ -5,7 +5,7 @@ import { fetchTikTokProfile } from '@/services/tiktokService';
 import { analyzeTikTokProfile } from '@/services/profileAnalysisService';
 import { TikTokProfile } from '@/components/TikTokConnectModal';
 import { TikTokProfileAnalysis } from '@/types/tiktok.types';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { formatNumber } from '@/utils/formatters';
 import { Progress } from '@/components/ui/progress';
 
@@ -361,8 +361,8 @@ export const AccountAnalyzer: React.FC = () => {
           <section className="glass p-4 rounded-xl">
             <div className="flex items-start">
               <img 
-                src={profile.avatarUrl} 
-                alt={profile.nickname} 
+                src={profile.avatar} 
+                alt={profile.displayName} 
                 className="w-16 h-16 rounded-full mr-4"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
@@ -371,7 +371,7 @@ export const AccountAnalyzer: React.FC = () => {
               />
               <div className="flex-1">
                 <div className="flex items-center">
-                  <h3 className="font-semibold">{profile.nickname}</h3>
+                  <h3 className="font-semibold">{profile.displayName}</h3>
                   {profile.verified && (
                     <span className="ml-1 bg-tva-primary/20 p-0.5 rounded-full">
                       <svg className="w-3 h-3 text-tva-primary" fill="currentColor" viewBox="0 0 20 20">
@@ -380,7 +380,7 @@ export const AccountAnalyzer: React.FC = () => {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-tva-text/70">@{profile.username}</p>
+                <p className="text-xs text-tva-text/70">{profile.username}</p>
                 <p className="text-sm mt-1">{profile.bio || 'Aucune bio.'}</p>
                 
                 <div className="flex space-x-4 mt-2">
@@ -390,7 +390,7 @@ export const AccountAnalyzer: React.FC = () => {
                   </div>
                   <div className="text-center">
                     <p className="text-xs text-tva-text/70">Abonnements</p>
-                    <p className="font-semibold">{formatNumber(profile.following)}</p>
+                    <p className="font-semibold">{formatNumber(profile.following || 0)}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-xs text-tva-text/70">Likes</p>
@@ -458,4 +458,4 @@ export const AccountAnalyzer: React.FC = () => {
       )}
     </div>
   );
-};
+}

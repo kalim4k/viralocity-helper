@@ -29,10 +29,15 @@ const TiktokIcon = () => (
 export interface TikTokProfile {
   username: string;
   displayName: string;
+  nickname?: string;
   avatar: string;
+  avatarUrl?: string;
   followers: number;
+  following?: number;
   likes: number;
   bio?: string;
+  verified?: boolean;
+  videoCount?: number;
   videos: Array<{
     id: string;
     thumbnail: string;

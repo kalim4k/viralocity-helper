@@ -58,10 +58,10 @@ async function analyzeWithImage(
     
     INFORMATIONS SUR LE PROFIL:
     Nom d'utilisateur: ${profile.username}
-    Nom: ${profile.nickname}
+    Nom: ${profile.displayName}
     Bio: ${profile.bio || "Aucune bio"}
     Abonnés: ${profile.followers}
-    Abonnements: ${profile.following}
+    Abonnements: ${profile.following || "Inconnu"}
     Likes: ${profile.likes}
     Vidéos: ${profile.videoCount || "Inconnu"}
     Vérifié: ${profile.verified ? "Oui" : "Non"}
@@ -125,10 +125,10 @@ async function analyzeWithoutImage(profile: TikTokProfile): Promise<TikTokProfil
     
     INFORMATIONS SUR LE PROFIL:
     Nom d'utilisateur: ${profile.username}
-    Nom: ${profile.nickname}
+    Nom: ${profile.displayName}
     Bio: ${profile.bio || "Aucune bio"}
     Abonnés: ${profile.followers}
-    Abonnements: ${profile.following}
+    Abonnements: ${profile.following || "Inconnu"}
     Likes: ${profile.likes}
     Vidéos: ${profile.videoCount || "Inconnu"}
     Vérifié: ${profile.verified ? "Oui" : "Non"}

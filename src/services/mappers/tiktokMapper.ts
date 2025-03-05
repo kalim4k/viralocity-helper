@@ -87,10 +87,14 @@ export function mapToTikTokProfile(response: RapidAPIResponse, username: string)
   const profile: TikTokProfile = {
     username: `@${userInfo.unique_id || cleanUsername}`,
     displayName: userInfo.nickname || cleanUsername,
+    nickname: userInfo.nickname || cleanUsername,
     avatar: userInfo.avatar_thumb?.url_list?.[0] || 'https://placehold.co/200x200?text=No+Avatar',
+    avatarUrl: userInfo.avatar_thumb?.url_list?.[0] || 'https://placehold.co/200x200?text=No+Avatar',
     followers: userInfo.follower_count || 0,
+    following: 0, // This will be updated if available in the API
     likes: likesCount,
     bio: userInfo.signature || '',
+    verified: false, // This will be updated if available in the API
     videos: videos
   };
   
