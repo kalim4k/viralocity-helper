@@ -256,7 +256,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      begin_transaction: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       check_license_expiration: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      commit_transaction: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
@@ -271,6 +279,10 @@ export type Database = {
           user_id: string
         }
         Returns: boolean
+      }
+      rollback_transaction: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {
