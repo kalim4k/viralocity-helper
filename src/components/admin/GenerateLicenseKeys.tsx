@@ -137,7 +137,7 @@ export const GenerateLicenseKeys: React.FC = () => {
     const keys: string[] = [];
 
     try {
-      // Calculate expiration date (1 month from now)
+      // Calculate expiration date based on validityMonths
       const expiresAt = addMonths(new Date(), validityMonths).toISOString();
       
       // Generate unique keys
@@ -162,7 +162,7 @@ export const GenerateLicenseKeys: React.FC = () => {
         price: price || null,
         status: 'inactive',
         admin_id: user.id,
-        expires_at: expiresAt // Set expiration date to 1 month from now
+        expires_at: expiresAt
       }));
 
       // Insert keys into database
