@@ -12,7 +12,7 @@ export const Header: React.FC = () => {
       <div className="flex justify-between items-center max-w-3xl mx-auto">
         <div className="flex items-center space-x-2">
           <div className="h-8 w-8 rounded-md bg-gradient-to-br from-tva-primary to-tva-secondary flex items-center justify-center">
-            <img src="https://orawin.fun/wp-content/uploads/2025/03/ENIGME6.png" alt="Logo" className="h-6 w-6" />
+            <img src="https://orawin.fun/wp-content/uploads/2025/03/ENIGME6.png" alt="Logo" className="h-full w-full object-cover" />
           </div>
           <span className="font-semibold text-xl tracking-tight">TikViral</span>
         </div>
