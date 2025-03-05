@@ -11,11 +11,13 @@ import { useLicense } from '@/contexts/LicenseContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+
 const TiktokIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 12a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />
     <path d="M15 8a4 4 0 0 0 4 4V4a4 4 0 0 1-4 4Z" />
     <path d="M15 8v8a4 4 0 0 1-4 4" />
   </svg>;
+
 const Index = () => {
   const navigate = useNavigate();
   const {
@@ -32,6 +34,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [licenseKey, setLicenseKey] = useState('');
   const [isActivatingLicense, setIsActivatingLicense] = useState(false);
+
   useEffect(() => {
     if (isAuthenticated) {
       loadDefaultAccount();
@@ -39,6 +42,7 @@ const Index = () => {
       setIsLoading(false);
     }
   }, [isAuthenticated]);
+
   const loadDefaultAccount = async () => {
     try {
       setIsLoading(true);
@@ -53,6 +57,7 @@ const Index = () => {
       setIsLoading(false);
     }
   };
+
   const handleConnectTikTok = () => {
     if (!isAuthenticated) {
       toast.error("Veuillez vous connecter pour accéder à cette fonctionnalité");
@@ -61,9 +66,11 @@ const Index = () => {
     }
     setIsModalOpen(true);
   };
+
   const handleModalClose = () => {
     setIsModalOpen(false);
   };
+
   const handleConnectionSuccess = async (profileData: TikTokProfile) => {
     setIsConnected(true);
     setProfile(profileData);
@@ -77,17 +84,32 @@ const Index = () => {
       }
     }
   };
+
   const handleDisconnect = async () => {
     if (!isAuthenticated || !profile) return;
+    
     try {
+      setIsLoading(true);
+      toast.info("Déconnexion du compte TikTok en cours...");
+      
       await disconnectTikTokAccount(profile.id);
+      
       setIsConnected(false);
       setProfile(null);
+      toast.success('Compte TikTok déconnecté avec succès');
     } catch (error) {
       console.error('Erreur lors de la déconnexion du compte TikTok:', error);
-      toast.error('Erreur lors de la déconnexion du compte TikTok');
+      
+      if (error instanceof Error) {
+        toast.error(`Erreur: ${error.message}`);
+      } else {
+        toast.error('Erreur lors de la déconnexion du compte TikTok');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
+
   const handleActivateLicense = async () => {
     if (!licenseKey.trim()) {
       toast.error("Veuillez entrer une clé de licence");
@@ -103,6 +125,7 @@ const Index = () => {
       setIsActivatingLicense(false);
     }
   };
+
   return <AppLayout>
       <div className="space-y-8 pb-4">
         <section className="text-center space-y-4 py-6">
@@ -177,4 +200,5 @@ const Index = () => {
       <TikTokConnectModal isOpen={isModalOpen} onClose={handleModalClose} onSuccess={handleConnectionSuccess} />
     </AppLayout>;
 };
+
 export default Index;

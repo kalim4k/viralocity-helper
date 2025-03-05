@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { TikTokProfile, TikTokVideo } from '@/types/tiktok.types';
 import { formatNumber } from '@/utils/formatters';
@@ -210,6 +211,7 @@ export const getDefaultTikTokAccount = async () => {
 
 /**
  * Déconnecte un compte TikTok
+ * Modifié pour utiliser une transaction et supprimer les vidéos associées avant de supprimer le compte
  */
 export const disconnectTikTokAccount = async (tiktokId: string) => {
   try {
@@ -220,34 +222,59 @@ export const disconnectTikTokAccount = async (tiktokId: string) => {
     }
     
     // Récupérer l'ID du compte à déconnecter
-    const { data: accountToDisconnect } = await supabase
+    const { data: accountToDisconnect, error: accountFetchError } = await supabase
       .from('tiktok_accounts')
       .select('id')
       .eq('user_id', currentUser.user.id)
       .eq('tiktok_id', tiktokId)
       .maybeSingle();
     
+    if (accountFetchError) {
+      console.error('Erreur lors de la récupération du compte TikTok:', accountFetchError);
+      throw new Error("Erreur lors de la récupération du compte TikTok");
+    }
+    
     if (!accountToDisconnect) {
       throw new Error("Compte TikTok non trouvé");
     }
     
-    // Supprimer d'abord les vidéos associées
-    const { error: videosError } = await supabase
-      .from('tiktok_videos')
-      .delete()
-      .eq('tiktok_account_id', accountToDisconnect.id);
+    // Utiliser une transaction pour s'assurer que tout se passe bien
+    // Démarrer une transaction manuelle en utilisant des callbacks
+    const { error: transactionError } = await supabase.rpc('begin_transaction');
     
-    if (videosError) throw videosError;
-    
-    // Supprimer ensuite le compte
-    const { error: accountError } = await supabase
-      .from('tiktok_accounts')
-      .delete()
-      .eq('id', accountToDisconnect.id);
-    
-    if (accountError) throw accountError;
-    
-    return { success: true };
+    try {
+      // 1. Supprimer d'abord les vidéos associées
+      const { error: videosError } = await supabase
+        .from('tiktok_videos')
+        .delete()
+        .eq('tiktok_account_id', accountToDisconnect.id);
+      
+      if (videosError) {
+        console.error('Erreur lors de la suppression des vidéos:', videosError);
+        throw videosError;
+      }
+      
+      // 2. Supprimer ensuite le compte
+      const { error: accountError } = await supabase
+        .from('tiktok_accounts')
+        .delete()
+        .eq('id', accountToDisconnect.id);
+      
+      if (accountError) {
+        console.error('Erreur lors de la suppression du compte:', accountError);
+        throw accountError;
+      }
+      
+      // Confirmer la transaction
+      await supabase.rpc('commit_transaction');
+      
+      return { success: true };
+    } catch (error) {
+      // En cas d'erreur, annuler la transaction
+      await supabase.rpc('rollback_transaction');
+      console.error('Erreur lors de la déconnexion du compte TikTok:', error);
+      throw error;
+    }
   } catch (error) {
     console.error('Erreur lors de la déconnexion du compte TikTok:', error);
     throw error;
