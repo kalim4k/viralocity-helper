@@ -52,12 +52,13 @@ export const mapTikTokProfileData = (data: RapidAPIResponse): TikTokProfile => {
     nickname: authorData.nickname,
     displayName: authorData.nickname, // Ensure displayName is always provided
     avatar: authorData.avatarMedium,
+    bio: authorData.signature,
+    verified: authorData.verified,
     followers: authorStats.followerCount,
     following: authorStats.followingCount,
     likes: authorStats.heartCount,
     videoCount: authorStats.videoCount,
     videos: videos,
-    verified: authorData.verified,
     displayStats: {
       followers: formatNumber(authorStats.followerCount),
       following: formatNumber(authorStats.followingCount),
@@ -65,11 +66,6 @@ export const mapTikTokProfileData = (data: RapidAPIResponse): TikTokProfile => {
       posts: formatNumber(authorStats.videoCount)
     }
   };
-
-  // If bio/signature is provided, add it to the profile
-  if (authorData.signature) {
-    profile.bio = authorData.signature;
-  }
 
   return profile;
 };
