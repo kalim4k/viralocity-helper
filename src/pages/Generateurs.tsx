@@ -136,7 +136,7 @@ const GenerateursPage = () => {
     }
   };
 
-  const handleComplete = (metadata: { title: string; description: string; hashtags: string[] }) => {
+  const handleMetadataComplete = (metadata: { title: string; description: string; hashtags: string[] }) => {
     if (!completedSteps.includes(3)) {
       setCompletedSteps([...completedSteps, 3]);
     }
@@ -188,8 +188,8 @@ const GenerateursPage = () => {
         const projectId = await saveGeneratedProject(
           projectTitle,
           selectedIdea,
-          null as any,
-          null as any,
+          null,
+          null,
           null,
           null,
           'draft'
@@ -399,7 +399,7 @@ const GenerateursPage = () => {
           <div className="flex space-x-2">
             {isAuthenticated && completedSteps.length > 0 && (
               <button 
-                onClick={saveProject.bind(null, 'idea')}
+                onClick={() => saveProject('idea')}
                 className="text-xs py-1.5 px-3 rounded-full bg-tva-primary/20 text-tva-primary border border-tva-primary/30"
               >
                 Sauvegarder
@@ -557,7 +557,7 @@ const GenerateursPage = () => {
                   selectedIdea={selectedIdea}
                   generatedScript={generatedScript}
                   onBackClick={handleBackClick}
-                  onComplete={handleComplete}
+                  onComplete={handleMetadataComplete}
                 />
               )}
             </TabsContent>
@@ -602,7 +602,7 @@ const GenerateursPage = () => {
                 selectedIdea={selectedIdea}
                 generatedScript={generatedScript}
                 onBackClick={handleBackClick}
-                onComplete={handleComplete}
+                onComplete={handleMetadataComplete}
               />
             )}
           </>
@@ -659,18 +659,10 @@ const GenerateursPage = () => {
                 Actif
               </span>
             </div>
-            
-            <div className="flex items-center justify-between p-4 bg-tva-surface/50 rounded-lg border-2 border-tva-primary/30">
-              <div>
-                <p className="font-medium">Plan premium</p>
-                <p className="text-sm text-tva-text/70">Projets illimités + toutes les fonctionnalités</p>
-              </div>
-              <span className="text-xs font-medium">29,99€/mois</span>
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsLicenseDialogOpen(false)}>
-              Annuler
+              Fermer
             </Button>
             <Button onClick={() => {
               setIsLicenseDialogOpen(false);

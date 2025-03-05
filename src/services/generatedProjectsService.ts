@@ -26,14 +26,14 @@ export interface GeneratedProject {
 export const saveGeneratedProject = async (
   title: string,
   idea: VideoIdea,
-  script: VideoScript,
-  scriptType: "voiceover" | "scenario",
-  analysis?: VideoAnalysis,
+  script: VideoScript | null,
+  scriptType: "voiceover" | "scenario" | null,
+  analysis?: VideoAnalysis | null,
   metadata?: {
     title: string;
     description: string;
     hashtags: string[];
-  },
+  } | null,
   status: string = 'draft',
   existingProjectId?: string
 ) => {
@@ -51,11 +51,11 @@ export const saveGeneratedProject = async (
         .update({
           title,
           description: idea.description,
-          idea,
-          script,
+          idea: idea as any,
+          script: script as any,
           script_type: scriptType,
-          analysis: analysis || null,
-          metadata: metadata || null,
+          analysis: analysis as any,
+          metadata: metadata as any,
           status,
           updated_at: new Date().toISOString()
         })
@@ -72,17 +72,17 @@ export const saveGeneratedProject = async (
     else {
       const { data, error } = await supabase
         .from('generated_projects')
-        .insert({
+        .insert([{
           user_id: currentUser.user.id,
           title,
           description: idea.description,
-          idea,
-          script,
+          idea: idea as any,
+          script: script as any,
           script_type: scriptType,
-          analysis: analysis || null,
-          metadata: metadata || null,
+          analysis: analysis as any,
+          metadata: metadata as any,
           status
-        })
+        }])
         .select('id')
         .single();
       
@@ -122,11 +122,11 @@ export const updateGeneratedProject = async (
       .update({
         title: updates.title,
         description: updates.description,
-        idea: updates.idea,
-        script: updates.script,
+        idea: updates.idea as any,
+        script: updates.script as any,
         script_type: updates.scriptType,
-        analysis: updates.analysis,
-        metadata: updates.metadata,
+        analysis: updates.analysis as any,
+        metadata: updates.metadata as any,
         status: updates.status,
         updated_at: new Date().toISOString()
       })
@@ -166,10 +166,10 @@ export const getGeneratedProjects = async () => {
       id: project.id,
       title: project.title,
       description: project.description,
-      idea: project.idea,
-      script: project.script,
+      idea: project.idea as unknown as VideoIdea,
+      script: project.script as unknown as VideoScript,
       scriptType: project.script_type,
-      analysis: project.analysis,
+      analysis: project.analysis as unknown as VideoAnalysis,
       metadata: project.metadata,
       status: project.status,
       createdAt: project.created_at,
@@ -198,10 +198,10 @@ export const getGeneratedProject = async (projectId: string) => {
       id: data.id,
       title: data.title,
       description: data.description,
-      idea: data.idea,
-      script: data.script,
+      idea: data.idea as unknown as VideoIdea,
+      script: data.script as unknown as VideoScript,
       scriptType: data.script_type,
-      analysis: data.analysis,
+      analysis: data.analysis as unknown as VideoAnalysis,
       metadata: data.metadata,
       status: data.status,
       createdAt: data.created_at,

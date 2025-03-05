@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LicenseRequired } from "./LicenseRequired";
 import { toast } from "sonner";
 import { useCachedLicense } from "@/hooks/useCachedLicense";
+import { getGeneratedProjects } from "@/services/generatedProjectsService";
 
 interface ProtectedLicenseRouteProps {
   children: React.ReactNode;
@@ -18,6 +19,7 @@ export const ProtectedLicenseRoute: React.FC<ProtectedLicenseRouteProps> = ({ ch
   const { verifyLicense, cachedHasLicense } = useCachedLicense();
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [shouldShowContent, setShouldShowContent] = useState(false);
+  const [hasCreatedFreeProject, setHasCreatedFreeProject] = useState(false);
 
   // Initial setup and cached license check
   useEffect(() => {
@@ -49,6 +51,21 @@ export const ProtectedLicenseRoute: React.FC<ProtectedLicenseRouteProps> = ({ ch
     }
   }, [hasLicense, isLoadingLicense]);
 
+  // Check if user has created a free project (for Générateurs page)
+  useEffect(() => {
+    if (isAuthenticated && location.pathname === '/generateurs' && !hasLicense) {
+      const checkFreeProject = async () => {
+        try {
+          const projects = await getGeneratedProjects();
+          setHasCreatedFreeProject(projects.length > 0);
+        } catch (error) {
+          console.error("Error checking free project status:", error);
+        }
+      };
+      checkFreeProject();
+    }
+  }, [isAuthenticated, location.pathname, hasLicense]);
+
   // Show loading state while checking access
   if (isLoading || (isCheckingAccess && !cachedHasLicense)) {
     return (
@@ -68,9 +85,14 @@ export const ProtectedLicenseRoute: React.FC<ProtectedLicenseRouteProps> = ({ ch
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
-  // Special case for Générateurs page - allow access without license
+  // Special case for Générateurs page - allow access only if the user has no projects or has a license
   if (location.pathname === '/generateurs') {
-    return <>{children}</>;
+    if (hasLicense || !hasCreatedFreeProject) {
+      return <>{children}</>;
+    } else {
+      console.log(`Accès refusé à ${location.pathname} - Projet gratuit déjà utilisé`);
+      return <LicenseRequired />;
+    }
   }
 
   // Show license required page if no license
