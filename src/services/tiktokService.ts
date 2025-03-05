@@ -19,6 +19,8 @@ export const fetchTikTokProfile = async (username: string): Promise<TikTokProfil
     const cleanUsername = username.startsWith('@') ? username.substring(1) : username;
     const url = `https://${API_HOST}/user/details?username=${cleanUsername}`;
     
+    console.log(`Making API request to: ${url}`);
+    
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -30,7 +32,7 @@ export const fetchTikTokProfile = async (username: string): Promise<TikTokProfil
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API error (${response.status}): ${errorText}`);
-      throw new Error(`Erreur API (${response.status}): ${errorText}`);
+      throw new Error(`Erreur API (${response.status}): ${response.statusText}`);
     }
     
     const data = await response.json();

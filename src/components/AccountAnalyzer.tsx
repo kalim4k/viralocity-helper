@@ -84,14 +84,14 @@ export const AccountAnalyzer: React.FC = () => {
                 setIsCameraReady(true);
                 
                 setTimeout(() => {
-                  const newPoints = [
+                  const initialPoints = [
                     { x: 25, y: 30, label: 'Profil' },
                     { x: 70, y: 40, label: 'Stats' },
                     { x: 50, y: 60, label: 'Bio' },
                     { x: 30, y: 80, label: 'Vidéos' }
                   ];
                   
-                  setDetectionPoints(newPoints);
+                  setDetectionPoints(initialPoints);
                 }, 800);
               });
             }
@@ -126,8 +126,16 @@ export const AccountAnalyzer: React.FC = () => {
       setImage(dataUrl);
       
       setTransitionOverlay(true);
-      
       setStep('capture-preview');
+      
+      if (detectionPoints.length === 0) {
+        setDetectionPoints([
+          { x: 25, y: 30, label: 'Profil' },
+          { x: 70, y: 40, label: 'Stats' },
+          { x: 50, y: 60, label: 'Bio' },
+          { x: 30, y: 80, label: 'Vidéos' }
+        ]);
+      }
       
       setTimeout(() => {
         startTransitionToScan();
@@ -140,6 +148,15 @@ export const AccountAnalyzer: React.FC = () => {
 
   const startTransitionToScan = () => {
     setScanProgress(0);
+    
+    if (detectionPoints.length === 0) {
+      setDetectionPoints([
+        { x: 25, y: 30, label: 'Profil' },
+        { x: 70, y: 40, label: 'Stats' },
+        { x: 50, y: 60, label: 'Bio' },
+        { x: 30, y: 80, label: 'Vidéos' }
+      ]);
+    }
     
     setTimeout(() => {
       setTransitionOverlay(false);
@@ -161,7 +178,21 @@ export const AccountAnalyzer: React.FC = () => {
   const simulateScan = () => {
     setIsScanning(true);
     
-    const baseDetectionPoints = detectionPoints.length ? detectionPoints : [];
+    const baseDetectionPoints = detectionPoints.length ? detectionPoints : [
+      { x: 25, y: 30, label: 'Profil' },
+      { x: 70, y: 40, label: 'Stats' },
+      { x: 50, y: 60, label: 'Bio' },
+      { x: 30, y: 80, label: 'Vidéos' }
+    ];
+    
+    if (baseDetectionPoints.length === 0) {
+      setDetectionPoints([
+        { x: 25, y: 30, label: 'Profil' },
+        { x: 70, y: 40, label: 'Stats' },
+        { x: 50, y: 60, label: 'Bio' },
+        { x: 30, y: 80, label: 'Vidéos' }
+      ]);
+    }
     
     if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
     
@@ -217,10 +248,14 @@ export const AccountAnalyzer: React.FC = () => {
     setError(null);
     
     try {
+      console.log(`Analyzing profile for username: ${username}`);
+      
       const profileData = await fetchTikTokProfile(username);
+      console.log("Profile data fetched:", profileData);
       setProfile(profileData);
       
       const analysisResult = await analyzeTikTokProfile(profileData, image);
+      console.log("Analysis result:", analysisResult);
       setAnalysis(analysisResult);
       
       setStep('analysis');
