@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -10,53 +10,17 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
-import { Key, Copy, Download, Plus, AlertCircle, Calendar } from 'lucide-react';
+import { Key, Copy, Download, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { addMonths } from 'date-fns';
 
 export const GenerateLicenseKeys: React.FC = () => {
   const { user } = useAuth();
-  const [quantity, setQuantity] = useState(100); // Default to 100 as requested
+  const [quantity, setQuantity] = useState(1);
   const [price, setPrice] = useState<number | ''>('');
   const [generatedKeys, setGeneratedKeys] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
-  const [validityMonths, setValidityMonths] = useState(1); // Default to 1 month
-
-  // Check if user is admin
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) {
-        setIsAdmin(false);
-        setIsCheckingAdmin(false);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase.rpc('is_admin', {
-          user_id: user.id
-        });
-        
-        if (error) {
-          console.error('Error checking admin status:', error);
-          setIsAdmin(false);
-        } else {
-          setIsAdmin(!!data);
-        }
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-        setIsAdmin(false);
-      } finally {
-        setIsCheckingAdmin(false);
-      }
-    };
-
-    checkAdminStatus();
-  }, [user]);
 
   // Generate a random license key
   const generateRandomKey = () => {
@@ -74,48 +38,6 @@ export const GenerateLicenseKeys: React.FC = () => {
     return segments.join('-');
   };
 
-  // Check if a key already exists in the database
-  const checkKeyExists = async (licenseKey: string) => {
-    try {
-      // Use a direct query to check if the key exists
-      // This avoids RLS issues since we're checking for existence only
-      const { count, error } = await supabase
-        .from('licenses')
-        .select('license_key', { count: 'exact', head: true })
-        .eq('license_key', licenseKey);
-      
-      if (error) {
-        console.error('Error checking if key exists:', error);
-        return true; // Assume it exists to be safe
-      }
-      
-      return count !== null && count > 0;
-    } catch (error) {
-      console.error('Exception checking if key exists:', error);
-      return true; // Assume it exists to be safe
-    }
-  };
-
-  // Generate a unique key
-  const generateUniqueKey = async () => {
-    let licenseKey;
-    let exists = true;
-    let attempts = 0;
-    
-    // Try up to 10 times to generate a unique key
-    while (exists && attempts < 10) {
-      licenseKey = generateRandomKey();
-      exists = await checkKeyExists(licenseKey);
-      attempts++;
-    }
-    
-    if (exists) {
-      throw new Error('Could not generate a unique key after multiple attempts');
-    }
-    
-    return licenseKey;
-  };
-
   // Generate license keys
   const handleGenerateKeys = async () => {
     if (quantity < 1) {
@@ -128,42 +50,22 @@ export const GenerateLicenseKeys: React.FC = () => {
       return;
     }
 
-    if (!isAdmin) {
-      toast.error('Vous n\'avez pas les droits administrateur');
-      return;
-    }
-
     setIsGenerating(true);
     const keys: string[] = [];
+    const keysToInsert = [];
 
     try {
-      // Calculate expiration date based on validityMonths
-      const expiresAt = addMonths(new Date(), validityMonths).toISOString();
-      
       // Generate unique keys
       for (let i = 0; i < quantity; i++) {
-        try {
-          const licenseKey = await generateUniqueKey();
-          keys.push(licenseKey);
-        } catch (error) {
-          console.error('Error generating unique key:', error);
-          toast.error('Erreur lors de la génération d\'une clé unique');
-          // Continue with the next key
-        }
+        const licenseKey = generateRandomKey();
+        keys.push(licenseKey);
+        keysToInsert.push({
+          license_key: licenseKey,
+          price: price || null,
+          status: 'inactive',
+          admin_id: user.id
+        });
       }
-
-      if (keys.length === 0) {
-        throw new Error('Could not generate any unique keys');
-      }
-
-      // Prepare license data for insertion with expiration date
-      const keysToInsert = keys.map(licenseKey => ({
-        license_key: licenseKey,
-        price: price || null,
-        status: 'inactive',
-        admin_id: user.id,
-        expires_at: expiresAt
-      }));
 
       // Insert keys into database
       const { error } = await supabase
@@ -176,7 +78,7 @@ export const GenerateLicenseKeys: React.FC = () => {
       }
 
       setGeneratedKeys(keys);
-      toast.success(`${keys.length} clé${keys.length > 1 ? 's' : ''} de licence générée${keys.length > 1 ? 's' : ''}`);
+      toast.success(`${quantity} clé${quantity > 1 ? 's' : ''} de licence générée${quantity > 1 ? 's' : ''}`);
     } catch (error) {
       console.error('Error generating license keys:', error);
       toast.error('Erreur lors de la génération des clés de licence');
@@ -205,33 +107,6 @@ export const GenerateLicenseKeys: React.FC = () => {
     link.click();
     document.body.removeChild(link);
   };
-
-  if (isCheckingAdmin) {
-    return (
-      <Card>
-        <CardContent className="py-10">
-          <div className="flex justify-center">
-            <div className="w-8 h-8 border-2 border-tva-primary border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (isAdmin === false) {
-    return (
-      <Card>
-        <CardContent className="py-6">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Vous n'avez pas les droits administrateur pour accéder à cette fonctionnalité.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card>
@@ -272,23 +147,6 @@ export const GenerateLicenseKeys: React.FC = () => {
               placeholder="Prix (optionnel)"
             />
           </div>
-        </div>
-        
-        <div className="space-y-2">
-          <label htmlFor="validity" className="text-sm font-medium flex items-center gap-1">
-            <Calendar className="h-4 w-4" />
-            Durée de validité (mois)
-          </label>
-          <Input
-            id="validity"
-            type="number"
-            min="1"
-            value={validityMonths}
-            onChange={(e) => setValidityMonths(parseInt(e.target.value) || 1)}
-          />
-          <p className="text-xs text-tva-text/60">
-            Les clés expireront {validityMonths} mois après activation
-          </p>
         </div>
 
         {generatedKeys.length > 0 && (
