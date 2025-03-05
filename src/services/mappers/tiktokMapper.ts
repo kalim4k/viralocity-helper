@@ -93,6 +93,9 @@ export function mapToTikTokProfile(response: RapidAPIResponse, username: string)
   // Get avatar URL with a fallback
   const avatarUrl = userInfo.avatar_thumb?.url_list?.[0] || 'https://placehold.co/200x200?text=No+Avatar';
   
+  // Determine if verified is present or use a default
+  const isVerified = userInfo.verified !== undefined ? Boolean(userInfo.verified) : false;
+  
   // Create the profile with all the available information
   const profile: TikTokProfile = {
     username: `@${userInfo.unique_id || cleanUsername}`,
@@ -104,7 +107,7 @@ export function mapToTikTokProfile(response: RapidAPIResponse, username: string)
     following: 0, // This will be updated if available in the API
     likes: likesCount,
     bio: userInfo.signature || '',
-    verified: Boolean(userInfo.verified), // This will be updated if available in the API
+    verified: isVerified, // Use the value we determined above
     videos: videos,
     videoCount: videoCount
   };
