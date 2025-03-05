@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -140,3 +139,5 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
     </Dialog>
   );
 };
+
+export type { TikTokProfile, TikTokVideo } from '@/types/tiktok.types';
