@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { BottomNavigation } from './BottomNavigation';
 
@@ -8,6 +9,13 @@ interface AppLayoutProps {
 }
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
+  const location = useLocation();
+
+  // Scroll to top when route changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
   return (
     <div className="relative min-h-screen flex flex-col bg-tva-bg text-tva-text">
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
@@ -17,8 +25,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       
       <Header />
       
-      <main className="flex-1 pb-20 px-4 pt-4 max-w-3xl mx-auto w-full relative z-10 animate-slide-up">
-        {children}
+      <main className="flex-1 pb-20 px-4 pt-4 max-w-3xl mx-auto w-full relative z-10 animate-fade-in">
+        <div key={location.pathname} className="animate-slide-up">
+          {children}
+        </div>
       </main>
       
       <BottomNavigation />

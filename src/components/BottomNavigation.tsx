@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Sparkles, Search, Home, Flame } from 'lucide-react';
 
@@ -6,18 +7,29 @@ export const BottomNavigation: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  const navigationItems = [
+  const navigationItems = useMemo(() => [
     { name: 'Accueil', path: '/', icon: Home },
     { name: 'Générateurs', path: '/generateurs', icon: Sparkles },
     { name: 'Analyse', path: '/analyse', icon: Search },
     { name: 'Tendance', path: '/tendance', icon: Flame },
-  ];
+  ], []);
   
   const isActive = (path: string) => {
     if (path === '/' && location.pathname === '/') {
       return true;
     }
-    return location.pathname === path;
+    // Enhanced active route detection for better matching
+    if (path !== '/' && location.pathname.startsWith(path)) {
+      return true;
+    }
+    return false;
+  };
+  
+  const handleNavigation = (path: string) => {
+    // Using replace: true prevents history stack buildup
+    if (location.pathname !== path) {
+      navigate(path, { replace: true });
+    }
   };
   
   return (
@@ -27,12 +39,13 @@ export const BottomNavigation: React.FC = () => {
           {navigationItems.map((item) => (
             <button
               key={item.name}
-              onClick={() => navigate(item.path)}
+              onClick={() => handleNavigation(item.path)}
               className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all duration-300 ${
                 isActive(item.path)
                   ? 'bg-tva-surface text-tva-primary glow-border'
                   : 'text-tva-text/60 hover:text-tva-text'
               }`}
+              aria-current={isActive(item.path) ? 'page' : undefined}
             >
               <item.icon
                 size={24}
