@@ -9,6 +9,24 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          created_at: string
+          id: string
+          is_admin: boolean
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          is_admin?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+        }
+        Relationships: []
+      }
       generated_projects: {
         Row: {
           analysis: Json | null
@@ -51,6 +69,42 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      licenses: {
+        Row: {
+          activated_at: string | null
+          admin_id: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          license_key: string
+          price: number | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          admin_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          license_key: string
+          price?: number | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          admin_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          license_key?: string
+          price?: number | null
+          status?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -223,7 +277,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_license_expiration: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      has_active_license: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

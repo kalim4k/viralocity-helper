@@ -1,12 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
-import { Flame } from 'lucide-react';
+import { Flame, Key } from 'lucide-react';
 import { TikTokConnectModal, TikTokProfile } from '../components/TikTokConnectModal';
 import { TikTokProfileCard } from '../components/TikTokProfileCard';
 import { TikTokVideoGrid } from '../components/TikTokVideoGrid';
 import { saveTikTokAccount, getDefaultTikTokAccount, disconnectTikTokAccount } from '@/services/tiktokAccountService';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLicense } from '@/contexts/LicenseContext';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 const TiktokIcon = () => (
@@ -29,10 +33,13 @@ const TiktokIcon = () => (
 const Index = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const { hasLicense, isLoadingLicense, activateLicense } = useLicense();
   const [isConnected, setIsConnected] = useState(false);
   const [profile, setProfile] = useState<TikTokProfile | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [licenseKey, setLicenseKey] = useState('');
+  const [isActivatingLicense, setIsActivatingLicense] = useState(false);
   
   useEffect(() => {
     if (isAuthenticated) {
@@ -98,6 +105,23 @@ const Index = () => {
       toast.error('Erreur lors de la déconnexion du compte TikTok');
     }
   };
+
+  const handleActivateLicense = async () => {
+    if (!licenseKey.trim()) {
+      toast.error("Veuillez entrer une clé de licence");
+      return;
+    }
+
+    setIsActivatingLicense(true);
+    try {
+      const success = await activateLicense(licenseKey.trim());
+      if (success) {
+        setLicenseKey('');
+      }
+    } finally {
+      setIsActivatingLicense(false);
+    }
+  };
   
   return (
     <AppLayout>
@@ -116,6 +140,38 @@ const Index = () => {
             Analysez, créez et optimisez vos vidéos avec notre suite d'outils alimentée par l'IA pour maximiser votre croissance sur TikTok.
           </p>
         </section>
+
+        {/* License Activation Section */}
+        {isAuthenticated && !isLoadingLicense && !hasLicense && (
+          <section className="glass p-7 rounded-2xl space-y-5">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-tva-primary/20 rounded-lg">
+                <Key className="h-5 w-5 text-tva-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Activez votre licence</h3>
+                <p className="text-sm text-tva-text/70">
+                  Débloquez toutes les fonctionnalités de TikViral
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <Input
+                placeholder="Entrez votre clé de licence (XXXX-XXXX-XXXX-XXXX)"
+                value={licenseKey}
+                onChange={(e) => setLicenseKey(e.target.value)}
+                className="flex-1"
+              />
+              <Button 
+                onClick={handleActivateLicense}
+                disabled={isActivatingLicense || !licenseKey.trim()}
+              >
+                {isActivatingLicense ? 'Activation...' : 'Activer'}
+              </Button>
+            </div>
+          </section>
+        )}
         
         {isLoading ? (
           <div className="flex justify-center py-8">
@@ -148,12 +204,28 @@ const Index = () => {
                 />
                 <TikTokVideoGrid videos={profile.videos} maxVideos={3} />
                 
-                <button 
-                  onClick={() => navigate('/generateurs')}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-tva-primary to-tva-secondary text-white font-medium rounded-xl hover:shadow-lg hover:opacity-90 transition-all"
-                >
-                  Commencer à créer du contenu viral
-                </button>
+                {hasLicense ? (
+                  <button 
+                    onClick={() => navigate('/generateurs')}
+                    className="w-full py-3 px-4 bg-gradient-to-r from-tva-primary to-tva-secondary text-white font-medium rounded-xl hover:shadow-lg hover:opacity-90 transition-all"
+                  >
+                    Commencer à créer du contenu viral
+                  </button>
+                ) : (
+                  <div className="glass p-4 rounded-xl space-y-3">
+                    <p className="text-center text-sm">
+                      Activez une licence pour accéder à toutes les fonctionnalités de génération de contenu
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => navigate('/profile')}
+                    >
+                      <Key className="h-4 w-4 mr-2" />
+                      Activer une licence dans mon profil
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </section>

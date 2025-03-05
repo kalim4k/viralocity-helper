@@ -3,11 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLicense } from '@/contexts/LicenseContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, Mail, User, TrendingUp } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { LogOut, Mail, User, TrendingUp, Key } from 'lucide-react';
 import { signOut } from '@/services/authService';
 import { getUserTikTokAccounts } from '@/services/tiktokAccountService';
 import { TikTokProfile } from '@/types/tiktok.types';
+import { LicenseStatus } from '@/components/LicenseStatus';
 import {
   Card,
   CardContent,
@@ -48,10 +51,13 @@ const TiktokIcon = () => (
 
 const ProfilePage = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { hasLicense, activateLicense, refreshLicenseStatus } = useLicense();
   const navigate = useNavigate();
   const [showConfirmLogout, setShowConfirmLogout] = useState(false);
   const [tiktokAccounts, setTiktokAccounts] = useState<TikTokProfile[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
+  const [licenseKey, setLicenseKey] = useState('');
+  const [isActivatingLicense, setIsActivatingLicense] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -88,6 +94,24 @@ const ProfilePage = () => {
     }
   };
 
+  const handleActivateLicense = async () => {
+    if (!licenseKey.trim()) {
+      toast.error("Veuillez entrer une clé de licence");
+      return;
+    }
+
+    setIsActivatingLicense(true);
+    try {
+      const success = await activateLicense(licenseKey.trim());
+      if (success) {
+        setLicenseKey('');
+        await refreshLicenseStatus();
+      }
+    } finally {
+      setIsActivatingLicense(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -107,6 +131,48 @@ const ProfilePage = () => {
             Gérez votre profil et vos comptes connectés
           </p>
         </section>
+
+        {/* License Status */}
+        <LicenseStatus />
+
+        {/* License Activation (only shown if no license) */}
+        {!hasLicense && (
+          <Card className="glass">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                Activer une licence
+              </CardTitle>
+              <CardDescription>
+                Entrez votre clé de licence pour débloquer toutes les fonctionnalités
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="licenseKey" className="text-sm font-medium">
+                    Clé de licence
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="licenseKey"
+                      placeholder="XXXX-XXXX-XXXX-XXXX"
+                      value={licenseKey}
+                      onChange={(e) => setLicenseKey(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button 
+                      onClick={handleActivateLicense}
+                      disabled={isActivatingLicense || !licenseKey.trim()}
+                    >
+                      {isActivatingLicense ? 'Activation...' : 'Activer'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="glass">
           <CardHeader>
