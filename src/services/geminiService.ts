@@ -1,9 +1,11 @@
-
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { TikTokProfile } from '@/types/tiktok.types';
+import { TikTokProfileAnalysis } from '@/types/tiktok.types';
 
 // Initialize the Google Generative AI with the API key
 const genAI = new GoogleGenerativeAI("AIzaSyB1Vi3HkzzjNLrA1-NOlWwrXmbeoHvr1Hg");
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const visionModel = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
 export interface VideoIdea {
   title: string;
@@ -163,6 +165,91 @@ export const geminiService = {
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
       console.error("Erreur de génération de métadonnées:", error);
+      throw error;
+    }
+  },
+  
+  async analyzeTikTokProfileWithImage(profile: TikTokProfile, imageBase64: string | null): Promise<TikTokProfileAnalysis> {
+    try {
+      // Prepare profile data for the prompt
+      const profileData = {
+        username: profile.username,
+        displayName: profile.displayName,
+        followers: profile.followers,
+        following: profile.following || 0,
+        likes: profile.likes,
+        videoCount: profile.videoCount || 0,
+        bio: profile.bio || "No bio",
+        verified: profile.verified || false,
+      };
+      
+      let parts: any[] = [];
+      
+      // Build the prompt
+      const promptText = `Analyse ce profil TikTok et fournis des recommandations détaillées:
+      
+      Données du profil:
+      Nom d'affichage: ${profileData.displayName}
+      Nom d'utilisateur: @${profileData.username}
+      Abonnés: ${profileData.followers}
+      Abonnements: ${profileData.following}
+      Likes: ${profileData.likes}
+      Nombre de vidéos: ${profileData.videoCount}
+      Bio: "${profileData.bio}"
+      Compte vérifié: ${profileData.verified ? "Oui" : "Non"}
+      
+      ${imageBase64 ? "Tu peux voir une capture d'écran du profil dans l'image jointe. Analyse tous les éléments visuels visibles dans cette image aussi." : ""}
+      
+      Fournis une analyse approfondie du profil avec:
+      1. 3-5 points forts du profil
+      2. 3-5 améliorations possibles
+      3. 4-6 recommandations spécifiques (avec titre et description pour chaque recommandation)
+      4. Une bio optimisée de 150 caractères maximum
+      
+      Ta réponse doit être en français et formatée en JSON avec les propriétés suivantes:
+      {
+        "strengths": ["point fort 1", "point fort 2", ...],
+        "improvements": ["amélioration 1", "amélioration 2", ...],
+        "recommendations": [
+          {"title": "titre 1", "description": "description détaillée 1"},
+          ...
+        ],
+        "optimizedBio": "bio optimisée"
+      }`;
+      
+      parts.push(promptText);
+      
+      // Add the image if provided
+      if (imageBase64) {
+        parts.push({
+          inlineData: {
+            data: imageBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, ''),
+            mimeType: imageBase64.startsWith('data:image/png') ? 'image/png' : 'image/jpeg'
+          }
+        });
+        
+        // Use the vision model if image is provided
+        const result = await visionModel.generateContent(parts);
+        const text = result.response.text();
+        
+        // Extract the JSON from the response
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("Impossible de parser l'analyse générée");
+        
+        return JSON.parse(jsonMatch[0]);
+      } else {
+        // Use the regular model if no image
+        const result = await model.generateContent(promptText);
+        const text = result.response.text();
+        
+        // Extract the JSON from the response
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("Impossible de parser l'analyse générée");
+        
+        return JSON.parse(jsonMatch[0]);
+      }
+    } catch (error) {
+      console.error("Erreur d'analyse de profil:", error);
       throw error;
     }
   }

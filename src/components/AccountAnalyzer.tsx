@@ -1,11 +1,10 @@
-
-import React, { useState, useRef } from 'react';
-import { Camera, Upload, User, RefreshCw, CheckCircle } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Camera, Upload, User, RefreshCw, CheckCircle, Hexagon, Zap, Sparkles } from 'lucide-react';
 import { fetchTikTokProfile } from '@/services/tiktokService';
 import { analyzeTikTokProfile } from '@/services/profileAnalysisService';
 import { TikTokProfile } from '@/types/tiktok.types';
 import { TikTokProfileAnalysis } from '@/types/tiktok.types';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { formatNumber } from '@/utils/formatters';
 import { Progress } from '@/components/ui/progress';
 
@@ -19,9 +18,22 @@ export const AccountAnalyzer: React.FC = () => {
   const [profile, setProfile] = useState<TikTokProfile | null>(null);
   const [analysis, setAnalysis] = useState<TikTokProfileAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const [detectionPoints, setDetectionPoints] = useState<{ x: number, y: number, label: string }[]>([]);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const scanTimerRef = useRef<number | null>(null);
+  const detectionTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // Cleanup timers on component unmount
+    return () => {
+      if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
+      if (detectionTimerRef.current) window.clearInterval(detectionTimerRef.current);
+    };
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -40,20 +52,39 @@ export const AccountAnalyzer: React.FC = () => {
 
   const startCamera = async () => {
     try {
+      setShowCamera(true);
+      
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          } 
+        });
+        
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.play();
+          
+          // Add detection frame overlay
+          setTimeout(() => {
+            // Simulate detection points appearing
+            const newPoints = [
+              { x: 25, y: 30, label: 'Profil' },
+              { x: 70, y: 40, label: 'Stats' },
+              { x: 50, y: 60, label: 'Bio' },
+              { x: 30, y: 80, label: 'Vidéos' }
+            ];
+            
+            setDetectionPoints(newPoints);
+          }, 1000);
         }
       }
     } catch (err) {
       console.error("Error accessing camera:", err);
-      toast({
-        title: "Erreur de caméra",
-        description: "Impossible d'accéder à la caméra. Vérifiez les permissions.",
-        variant: "destructive",
-      });
+      toast.error("Impossible d'accéder à la caméra. Vérifiez les permissions.");
+      setShowCamera(false);
     }
   };
 
@@ -75,6 +106,7 @@ export const AccountAnalyzer: React.FC = () => {
         const stream = video.srcObject as MediaStream;
         stream?.getTracks().forEach(track => track.stop());
         
+        setShowCamera(false);
         setStep('scan');
         simulateScan();
       }
@@ -84,30 +116,53 @@ export const AccountAnalyzer: React.FC = () => {
   const simulateScan = () => {
     setIsScanning(true);
     setScanProgress(0);
+    setDetectionPoints([]);
     
-    const interval = setInterval(() => {
+    // Simulate scan progression
+    if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
+    
+    scanTimerRef.current = window.setInterval(() => {
       setScanProgress(prev => {
-        const newProgress = prev + 5;
+        const newProgress = prev + 2;
         if (newProgress >= 100) {
-          clearInterval(interval);
+          if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
           setTimeout(() => {
             setIsScanning(false);
             setStep('username');
-          }, 500);
+          }, 800);
           return 100;
         }
         return newProgress;
       });
-    }, 120);
+    }, 80);
+    
+    // Simulate detection points appearing during scan
+    if (detectionTimerRef.current) window.clearInterval(detectionTimerRef.current);
+    
+    const detectionPoints = [
+      { x: 25, y: 30, label: 'Avatar' },
+      { x: 70, y: 25, label: 'Username' },
+      { x: 40, y: 50, label: 'Followers' },
+      { x: 60, y: 45, label: 'Bio' },
+      { x: 30, y: 70, label: 'Content' },
+      { x: 75, y: 60, label: 'Likes' },
+      { x: 55, y: 80, label: 'Engagement' }
+    ];
+    
+    let index = 0;
+    detectionTimerRef.current = window.setInterval(() => {
+      if (index < detectionPoints.length) {
+        setDetectionPoints(prev => [...prev, detectionPoints[index]]);
+        index++;
+      } else {
+        if (detectionTimerRef.current) window.clearInterval(detectionTimerRef.current);
+      }
+    }, 400);
   };
 
   const analyzeProfile = async () => {
     if (!username) {
-      toast({
-        title: "Nom d'utilisateur manquant",
-        description: "Veuillez entrer un nom d'utilisateur TikTok",
-        variant: "destructive",
-      });
+      toast.error("Veuillez entrer un nom d'utilisateur TikTok");
       return;
     }
     
@@ -125,19 +180,12 @@ export const AccountAnalyzer: React.FC = () => {
       
       setStep('analysis');
       
-      toast({
-        title: "Analyse terminée",
-        description: "L'analyse de votre profil TikTok est prête !",
-      });
+      toast.success("L'analyse de votre profil TikTok est prête !");
     } catch (err) {
       console.error('Erreur lors de l\'analyse:', err);
       setError(err instanceof Error ? err.message : 'Une erreur s\'est produite lors de l\'analyse');
       
-      toast({
-        variant: "destructive",
-        title: "Erreur d'analyse",
-        description: err instanceof Error ? err.message : 'Une erreur s\'est produite lors de l\'analyse',
-      });
+      toast.error(err instanceof Error ? err.message : 'Une erreur s\'est produite lors de l\'analyse');
     } finally {
       setIsAnalyzing(false);
     }
@@ -182,26 +230,63 @@ export const AccountAnalyzer: React.FC = () => {
             </button>
           </div>
           
-          <div className="mt-4 relative">
-            <video 
-              ref={videoRef} 
-              className="w-full rounded-lg hidden"
-              muted
-              playsInline
-            />
-            <canvas ref={canvasRef} className="hidden" />
-            
-            {videoRef.current && videoRef.current.srcObject && (
-              <div className="text-center mt-4">
-                <button
-                  onClick={capturePhoto}
-                  className="bg-tva-primary text-white py-2 px-4 rounded-lg text-sm font-medium"
-                >
-                  Prendre la photo
-                </button>
+          {showCamera && (
+            <div className="mt-4 relative rounded-xl overflow-hidden">
+              <video 
+                ref={videoRef} 
+                className="w-full rounded-lg"
+                muted
+                playsInline
+                autoPlay
+              />
+              <canvas ref={canvasRef} className="hidden" />
+              
+              {/* Scan overlay */}
+              <div className="absolute inset-0 pointer-events-none border-2 border-tva-primary/50 z-10">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-[80%] h-[80%] border-2 border-tva-primary border-dashed rounded-md flex items-center justify-center">
+                    <div className="text-xs text-white bg-black/50 px-2 py-1 rounded">
+                      Centrez le profil TikTok
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Detection points */}
+                {detectionPoints.map((point, idx) => (
+                  <div 
+                    key={idx} 
+                    className="absolute animate-pulse"
+                    style={{
+                      left: `${point.x}%`,
+                      top: `${point.y}%`,
+                      transform: 'translate(-50%, -50%)'
+                    }}
+                  >
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-tva-primary rounded-full"></div>
+                      <span className="text-[10px] bg-black/60 text-white px-1 rounded">
+                        {point.label}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                
+                {/* Corner brackets */}
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-tva-primary"></div>
+                <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-tva-primary"></div>
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-tva-primary"></div>
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-tva-primary"></div>
               </div>
-            )}
-          </div>
+              
+              <button
+                onClick={capturePhoto}
+                className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white text-tva-primary py-2 px-6 rounded-full font-medium flex items-center gap-2 shadow-lg"
+              >
+                <Camera size={18} />
+                <span>Capturer</span>
+              </button>
+            </div>
+          )}
         </section>
       )}
       
@@ -221,20 +306,96 @@ export const AccountAnalyzer: React.FC = () => {
                 
                 {isScanning && (
                   <div className="absolute inset-0 bg-gradient-to-b from-tva-primary/10 to-tva-primary/30 animate-pulse">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="bg-black/50 backdrop-blur-sm p-4 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <RefreshCw size={20} className="text-tva-primary animate-spin" />
-                          <span className="text-white font-medium">
-                            Analyse d'image
-                          </span>
-                        </div>
+                    {/* Scanning effect with grid */}
+                    <div className="absolute inset-0 backdrop-blur-[1px]">
+                      {/* Grid lines */}
+                      <div className="absolute inset-0 backdrop-blur-[1px] opacity-30">
+                        {Array.from({ length: 20 }).map((_, i) => (
+                          <div 
+                            key={`h-${i}`} 
+                            className="absolute left-0 right-0 h-px bg-tva-primary/70"
+                            style={{ top: `${(i+1) * 5}%` }}
+                          ></div>
+                        ))}
+                        {Array.from({ length: 20 }).map((_, i) => (
+                          <div 
+                            key={`v-${i}`} 
+                            className="absolute top-0 bottom-0 w-px bg-tva-primary/70"
+                            style={{ left: `${(i+1) * 5}%` }}
+                          ></div>
+                        ))}
                       </div>
                       
-                      <div className="absolute inset-0">
-                        <div className="w-full h-0.5 bg-tva-primary/50 absolute" style={{ top: `${scanProgress}%`, boxShadow: '0 0 10px rgba(79, 70, 229, 0.8)' }} />
-                        <div className="h-full w-0.5 bg-tva-primary/50 absolute left-1/4 animate-pulse" style={{ boxShadow: '0 0 10px rgba(79, 70, 229, 0.8)' }} />
-                        <div className="h-full w-0.5 bg-tva-primary/50 absolute left-3/4 animate-pulse" style={{ boxShadow: '0 0 10px rgba(79, 70, 229, 0.8)' }} />
+                      {/* Scan line */}
+                      <div 
+                        className="absolute left-0 right-0 h-1 bg-tva-primary shadow-[0_0_15px_rgba(79,70,229,0.8)] transition-all duration-500 ease-linear"
+                        style={{ top: `${scanProgress}%` }}
+                      ></div>
+                      
+                      {/* Detection points */}
+                      {detectionPoints.map((point, idx) => (
+                        <div 
+                          key={idx} 
+                          className="absolute animate-fade-in"
+                          style={{
+                            left: `${point.x}%`,
+                            top: `${point.y}%`,
+                            transform: 'translate(-50%, -50%)'
+                          }}
+                        >
+                          <div className="relative">
+                            <Hexagon size={20} className="text-tva-primary/80 animate-pulse" />
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 whitespace-nowrap">
+                              <span className="text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded-sm">
+                                {point.label}
+                              </span>
+                              <div className="h-4 w-4 absolute -top-3 left-1/2 transform -translate-x-1/2">
+                                <div className="h-full w-[1px] bg-tva-primary/50 mx-auto"></div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Randomly position small dots around the detection point */}
+                          {Array.from({ length: 3 }).map((_, dotIdx) => {
+                            const angle = Math.random() * Math.PI * 2;
+                            const distance = 15 + Math.random() * 25;
+                            const x = Math.cos(angle) * distance;
+                            const y = Math.sin(angle) * distance;
+                            
+                            return (
+                              <div 
+                                key={`dot-${idx}-${dotIdx}`}
+                                className="absolute w-1 h-1 bg-tva-primary/70 rounded-full"
+                                style={{
+                                  left: `${x}px`,
+                                  top: `${y}px`,
+                                  opacity: 0.4 + Math.random() * 0.6,
+                                  animation: `pulse ${1 + Math.random()}s infinite`
+                                }}
+                              ></div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                      
+                      {/* Central scanning info */}
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+                        <div className="bg-black/50 backdrop-blur-sm p-3 rounded-lg flex flex-col items-center justify-center">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <Sparkles size={16} className="text-yellow-400 animate-pulse" />
+                            <span className="text-white font-medium">
+                              Analyse IA
+                            </span>
+                            <Sparkles size={16} className="text-yellow-400 animate-pulse" />
+                          </div>
+                          <div className="text-xs text-white/70">
+                            Extraction des données du profil
+                          </div>
+                          <div className="mt-2 text-xs font-mono text-white/90 flex items-center">
+                            <span className="text-tva-primary">{Math.floor(scanProgress)}</span>
+                            <span>% complété</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -248,7 +409,7 @@ export const AccountAnalyzer: React.FC = () => {
               <span>Analyse d'image</span>
               <span>{scanProgress}%</span>
             </div>
-            <Progress value={scanProgress} />
+            <Progress value={scanProgress} className="h-2" />
           </div>
           
           <div className="space-y-1.5">
@@ -258,15 +419,15 @@ export const AccountAnalyzer: React.FC = () => {
             </div>
             <div className="flex items-center text-xs">
               <CheckCircle size={14} className={`mr-2 ${scanProgress > 40 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
-              <span className={scanProgress > 40 ? 'text-tva-text' : 'text-tva-text/50'}>Extraction des éléments de la page</span>
+              <span className={scanProgress > 40 ? 'text-tva-text' : 'text-tva-text/50'}>Extraction des éléments du profil</span>
             </div>
             <div className="flex items-center text-xs">
               <CheckCircle size={14} className={`mr-2 ${scanProgress > 60 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
-              <span className={scanProgress > 60 ? 'text-tva-text' : 'text-tva-text/50'}>Identification du profil</span>
+              <span className={scanProgress > 60 ? 'text-tva-text' : 'text-tva-text/50'}>Analyse des métriques</span>
             </div>
             <div className="flex items-center text-xs">
               <CheckCircle size={14} className={`mr-2 ${scanProgress > 80 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
-              <span className={scanProgress > 80 ? 'text-tva-text' : 'text-tva-text/50'}>Traitement des données</span>
+              <span className={scanProgress > 80 ? 'text-tva-text' : 'text-tva-text/50'}>Préparation des recommandations</span>
             </div>
             <div className="flex items-center text-xs">
               <CheckCircle size={14} className={`mr-2 ${scanProgress >= 100 ? 'text-tva-primary' : 'text-tva-text/30'}`} />
@@ -313,7 +474,12 @@ export const AccountAnalyzer: React.FC = () => {
                   <RefreshCw size={16} className="animate-spin" />
                   <span>Analyse...</span>
                 </>
-              ) : 'Analyser'}
+              ) : (
+                <>
+                  <Zap size={16} />
+                  <span>Analyser</span>
+                </>
+              )}
             </button>
           </div>
           

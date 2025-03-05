@@ -5,7 +5,7 @@ import { mapTikTokProfileData } from './mappers/tiktokMapper';
 
 // API configuration
 const API_KEY = 'bd18f4b949msh6edd4e1d444b6a0p18d393jsnf0169527896e';
-const API_HOST = 'tiktok-user.p.rapidapi.com';
+const API_HOST = 'tiktok-api6.p.rapidapi.com';
 
 /**
  * Fetches a TikTok profile by username
@@ -18,7 +18,7 @@ export const fetchTikTokProfile = async (username: string) => {
   try {
     // Remove @ from username if present
     const cleanUsername = username.startsWith('@') ? username.substring(1) : username;
-    const url = `https://${API_HOST}/getuser/${cleanUsername}`;
+    const url = `https://${API_HOST}/user/details?username=${cleanUsername}`;
     
     const response = await fetch(url, {
       method: 'GET',
@@ -34,24 +34,57 @@ export const fetchTikTokProfile = async (username: string) => {
       throw new Error(`Erreur API (${response.status}): ${errorText}`);
     }
     
-    const data: RapidAPIResponse = await response.json();
+    const data = await response.json();
+    console.log("API response:", data);
     
-    if (data.status !== 200) {
-      console.error('API returned error status:', data);
-      throw new Error(`Erreur: ${JSON.stringify(data)}`);
+    // Verify the response structure
+    if (!data || !data.username) {
+      console.error('Invalid API response format:', data);
+      throw new Error('Format de réponse API invalide');
     }
     
-    // Vérification que les données essentielles sont présentes
-    if (!data.data || !data.data.itemList || data.data.itemList.length === 0) {
-      console.error('No video data found for the user', data);
-      throw new Error('Aucune donnée de vidéo trouvée pour cet utilisateur.');
-    }
+    // Create a simplified profile structure
+    const profileData: TikTokProfile = {
+      id: data.user_id,
+      uniqueId: data.username,
+      username: data.username,
+      nickname: data.username,
+      displayName: data.username,
+      avatar: data.profile_image,
+      bio: data.description || '',
+      verified: data.verified || false,
+      followers: data.followers || 0,
+      following: data.following || 0,
+      likes: data.total_heart || 0,
+      videoCount: data.total_videos || 0,
+      videos: [],
+      displayStats: {
+        followers: formatNumber(data.followers || 0),
+        following: formatNumber(data.following || 0),
+        likes: formatNumber(data.total_heart || 0),
+        posts: formatNumber(data.total_videos || 0)
+      }
+    };
     
-    // Map the API response to our TikTokProfile structure
-    return mapTikTokProfileData(data);
+    return profileData;
   } catch (error) {
     console.error('Error fetching TikTok profile:', error);
     toast.error(`Erreur lors de la récupération du profil: ${error.message}`);
     throw error;
+  }
+};
+
+/**
+ * Formats a number for display (e.g., 1000 -> 1K)
+ * @param num The number to format
+ * @returns Formatted number string
+ */
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  } else {
+    return num.toString();
   }
 };
