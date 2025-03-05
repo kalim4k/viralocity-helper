@@ -74,18 +74,24 @@ export const GenerateLicenseKeys: React.FC = () => {
 
   // Check if a key already exists in the database
   const checkKeyExists = async (licenseKey: string) => {
-    const { data, error } = await supabase
-      .from('licenses')
-      .select('license_key')
-      .eq('license_key', licenseKey)
-      .maybeSingle();
-    
-    if (error) {
-      console.error('Error checking if key exists:', error);
+    try {
+      // Use a direct query to check if the key exists
+      // This avoids RLS issues since we're checking for existence only
+      const { count, error } = await supabase
+        .from('licenses')
+        .select('license_key', { count: 'exact', head: true })
+        .eq('license_key', licenseKey);
+      
+      if (error) {
+        console.error('Error checking if key exists:', error);
+        return true; // Assume it exists to be safe
+      }
+      
+      return count !== null && count > 0;
+    } catch (error) {
+      console.error('Exception checking if key exists:', error);
       return true; // Assume it exists to be safe
     }
-    
-    return !!data;
   };
 
   // Generate a unique key
@@ -127,7 +133,6 @@ export const GenerateLicenseKeys: React.FC = () => {
 
     setIsGenerating(true);
     const keys: string[] = [];
-    const keysToInsert = [];
 
     try {
       // Generate unique keys
@@ -135,12 +140,6 @@ export const GenerateLicenseKeys: React.FC = () => {
         try {
           const licenseKey = await generateUniqueKey();
           keys.push(licenseKey);
-          keysToInsert.push({
-            license_key: licenseKey,
-            price: price || null,
-            status: 'inactive',
-            admin_id: user.id
-          });
         } catch (error) {
           console.error('Error generating unique key:', error);
           toast.error('Erreur lors de la génération d\'une clé unique');
@@ -151,6 +150,14 @@ export const GenerateLicenseKeys: React.FC = () => {
       if (keys.length === 0) {
         throw new Error('Could not generate any unique keys');
       }
+
+      // Prepare license data for insertion
+      const keysToInsert = keys.map(licenseKey => ({
+        license_key: licenseKey,
+        price: price || null,
+        status: 'inactive',
+        admin_id: user.id
+      }));
 
       // Insert keys into database
       const { error } = await supabase
