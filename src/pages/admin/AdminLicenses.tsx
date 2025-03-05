@@ -21,7 +21,7 @@ const AdminLicensesPage = () => {
       }
 
       try {
-        // Use the RPC function call to check admin status
+        // Use the security definer function to check admin status
         const { data, error } = await supabase.rpc('is_admin', {
           user_id: user.id
         });
@@ -32,6 +32,9 @@ const AdminLicensesPage = () => {
           setIsAdmin(false);
         } else {
           setIsAdmin(!!data);
+          if (!data) {
+            toast.error('Vous n\'avez pas les droits administrateur');
+          }
         }
       } catch (error) {
         console.error('Error checking admin status:', error);
