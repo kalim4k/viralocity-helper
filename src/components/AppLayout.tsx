@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { BottomNavigation } from './BottomNavigation';
+import { Toaster } from '@/components/ui/toaster';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -44,6 +45,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       </main>
       
       <BottomNavigation />
+      <Toaster />
     </div>
   );
 };

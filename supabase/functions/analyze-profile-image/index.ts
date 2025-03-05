@@ -22,7 +22,7 @@ serve(async (req) => {
 
     console.log(`Analyzing profile image for ${username || 'unknown user'}`);
     
-    // Initialize Gemini
+    // Initialize Gemini with the API key
     const genAI = new GoogleGenerativeAI("AIzaSyB1Vi3HkzzjNLrA1-NOlWwrXmbeoHvr1Hg");
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
     
@@ -49,19 +49,14 @@ serve(async (req) => {
     Provide specific recommendations to improve the profile's performance and engagement.
     Format the response in JSON with these fields:
     {
-      "profileImageAnalysis": {
-        "strengths": ["strength1", "strength2"],
-        "improvements": ["improvement1", "improvement2"]
-      },
-      "bioAnalysis": {
-        "strengths": ["strength1", "strength2"],
-        "improvements": ["improvement1", "improvement2"]
-      },
-      "contentAnalysis": {
-        "strengths": ["strength1", "strength2"],
-        "improvements": ["improvement1", "improvement2"]
-      },
-      "generalRecommendations": ["rec1", "rec2", "rec3"]
+      "strengths": ["strength1", "strength2", "strength3", "strength4", "strength5"],
+      "improvements": ["improvement1", "improvement2", "improvement3", "improvement4", "improvement5"],
+      "recommendations": [
+        {"title": "Recommendation 1", "description": "Detailed explanation"},
+        {"title": "Recommendation 2", "description": "Detailed explanation"},
+        {"title": "Recommendation 3", "description": "Detailed explanation"}
+      ],
+      "optimizedBio": "Suggested improved bio text"
     }
     
     Respond only with the JSON, nothing else.
