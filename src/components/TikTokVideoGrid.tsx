@@ -6,15 +6,18 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 
 interface TikTokVideoGridProps {
   videos: TikTokProfile['videos'];
+  maxVideos?: number;
 }
 
-export const TikTokVideoGrid: React.FC<TikTokVideoGridProps> = ({ videos }) => {
+export const TikTokVideoGrid: React.FC<TikTokVideoGridProps> = ({ videos, maxVideos = Infinity }) => {
+  const displayVideos = videos ? videos.slice(0, maxVideos) : [];
+  
   return (
     <div className="space-y-3">
       <h3 className="font-semibold text-lg">Vidéos récentes</h3>
-      {videos && videos.length > 0 ? (
+      {displayVideos && displayVideos.length > 0 ? (
         <div className="grid grid-cols-3 gap-3">
-          {videos.map(video => (
+          {displayVideos.map(video => (
             <TooltipProvider key={video.id}>
               <Tooltip>
                 <TooltipTrigger asChild>

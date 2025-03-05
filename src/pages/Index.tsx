@@ -134,7 +134,7 @@ const Index = () => {
             {profile && (
               <>
                 <TikTokProfileCard profile={profile} />
-                <TikTokVideoGrid videos={profile.videos} />
+                <TikTokVideoGrid videos={profile.videos} maxVideos={3} />
                 
                 <button 
                   onClick={() => navigate('/generateurs')}

@@ -1,6 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { TikTokProfile, TikTokVideo } from '@/types/tiktok.types';
+import { formatNumber } from '@/utils/formatters';
 
 /**
  * Sauvegarde un compte TikTok dans la base de données
