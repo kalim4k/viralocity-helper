@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import {
   TrendingVideo,
@@ -145,21 +144,50 @@ export const fetchTrendingCreators = async (region: string = "US"): Promise<Tren
 };
 
 /**
- * Fetches trending songs (still using mock data as not available in the new API)
+ * Fetches trending songs from the TikTok Creative Center API
  * @param region Region code (e.g., 'US', 'FR')
  * @returns Array of trending songs
  */
 export const fetchTrendingSongs = async (region: string = "US"): Promise<TrendingSong[]> => {
   try {
     console.log(`Fetching trending songs for region: ${region}`);
-    // Since the new API doesn't provide trending songs, we'll use mock data
-    console.warn('API for trending songs not available, using mock data');
-    toast.info("API pour les sons tendance non disponible, utilisation de données de démonstration");
+    
+    const response = await fetch(`${apiConfig.baseUrl}/api/trending/song?page=1&limit=20&period=7&rank_type=popular&country=${region}`, {
+      method: 'GET',
+      headers
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API responded with status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('Trending songs API response:', data);
+    
+    if (data && data.code === 0 && data.data && Array.isArray(data.data.sound_list)) {
+      return data.data.sound_list.map((song: any) => ({
+        id: song.clip_id || `song-${Math.random().toString(36).substr(2, 9)}`,
+        title: song.title || '',
+        coverUrl: song.cover || '',
+        playUrl: song.link || '#',
+        cover: song.cover || '',
+        link: song.link || '#',
+        clip_id: song.clip_id || '',
+        artist: song.author || '',
+        author: song.author || '',
+        rank: song.rank || 0,
+        usageCount: 0 // Not directly provided by API
+      }));
+    }
+    
+    // Fallback to mock data
+    console.warn('API response not in expected format, falling back to mock data');
+    toast.info("Format de données inattendu pour les sons, utilisation de données de démonstration");
     return generateMockSongs(region);
     
   } catch (error) {
     console.error('Error fetching trending songs:', error);
-    toast.error("Erreur lors de la récupération des chansons tendance, utilisation de données de démonstration");
+    toast.error("Erreur lors de la récupération des sons tendance, utilisation de données de démonstration");
     
     // Return mock data as fallback
     return generateMockSongs(region);
@@ -167,16 +195,47 @@ export const fetchTrendingSongs = async (region: string = "US"): Promise<Trendin
 };
 
 /**
- * Fetches trending hashtags (still using mock data as not available in the new API)
+ * Fetches trending hashtags from the TikTok Creative Center API
  * @param region Region code (e.g., 'US', 'FR')
  * @returns Array of trending hashtags
  */
 export const fetchTrendingHashtags = async (region: string = "US"): Promise<TrendingHashtag[]> => {
   try {
     console.log(`Fetching trending hashtags for region: ${region}`);
-    // Since the new API doesn't provide trending hashtags, we'll use mock data
-    console.warn('API for trending hashtags not available, using mock data');
-    toast.info("API pour les hashtags tendance non disponible, utilisation de données de démonstration");
+    
+    const response = await fetch(`${apiConfig.baseUrl}/api/trending/hashtag?page=1&limit=20&period=120&country=${region}&sort_by=popular`, {
+      method: 'GET',
+      headers
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API responded with status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('Trending hashtags API response:', data);
+    
+    if (data && data.code === 0 && data.data && Array.isArray(data.data.list)) {
+      return data.data.list.map((hashtag: any, index: number) => ({
+        id: hashtag.hashtag_id || `hashtag-${Math.random().toString(36).substr(2, 9)}`,
+        name: hashtag.hashtag_name || '',
+        hashtag_name: hashtag.hashtag_name || '',
+        hashtag_id: hashtag.hashtag_id || '',
+        rank: index + 1,
+        videoCount: Math.floor(Math.random() * 990000) + 10000, // Not provided directly by API
+        publish_cnt: Math.floor(Math.random() * 990000) + 10000, // Not provided directly by API
+        video_views: Math.floor(Math.random() * 99000000) + 1000000, // Not provided directly by API
+        viewCount: Math.floor(Math.random() * 99000000) + 1000000, // Not provided directly by API
+        creators: Array(5).fill(null).map((_, j) => ({
+          avatar_url: `https://placehold.co/200x200/4f46e5/ffffff?text=C${j + 1}`,
+          nick_name: `Creator ${j + 1}`
+        }))
+      }));
+    }
+    
+    // Fallback to mock data
+    console.warn('API response not in expected format, falling back to mock data');
+    toast.info("Format de données inattendu pour les hashtags, utilisation de données de démonstration");
     return generateMockHashtags(region);
     
   } catch (error) {
