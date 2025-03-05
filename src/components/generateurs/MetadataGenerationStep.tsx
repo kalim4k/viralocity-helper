@@ -9,7 +9,7 @@ interface MetadataGenerationStepProps {
   selectedIdea: VideoIdea;
   generatedScript: VideoScript;
   onBackClick: () => void;
-  onComplete: () => void;
+  onComplete: (metadata: { title: string; description: string; hashtags: string[] }) => void;
 }
 
 export const MetadataGenerationStep: React.FC<MetadataGenerationStepProps> = ({
@@ -54,6 +54,16 @@ export const MetadataGenerationStep: React.FC<MetadataGenerationStepProps> = ({
     }, 2000);
     
     toast.success(`${field === 'title' ? 'Titre' : field === 'description' ? 'Description' : 'Hashtags'} copié!`);
+  };
+
+  const handleComplete = () => {
+    if (metadata) {
+      onComplete({
+        title: metadata.title,
+        description: metadata.description,
+        hashtags: metadata.hashtags
+      });
+    }
   };
 
   return (
@@ -127,7 +137,7 @@ export const MetadataGenerationStep: React.FC<MetadataGenerationStepProps> = ({
           
           <div className="flex justify-center mt-8">
             <Button
-              onClick={onComplete}
+              onClick={handleComplete}
               className="bg-tva-primary hover:bg-tva-primary/90 text-white px-8"
             >
               Terminer

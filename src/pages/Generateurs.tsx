@@ -15,6 +15,7 @@ import { useLicense } from '@/contexts/LicenseContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const GenerateursPage = () => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   
@@ -145,7 +147,13 @@ const GenerateursPage = () => {
     
     // Sauvegarder le projet après la complétion
     if (isAuthenticated && selectedIdea && generatedScript && scriptType) {
-      saveProject('complete', scriptAnalysis, metadata);
+      saveProject('complete', scriptAnalysis, metadata).then(() => {
+        // Rediriger vers la page d'accueil une fois le projet terminé
+        toast.success('Projet terminé! Vous avez utilisé votre projet gratuit.');
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      });
     }
   };
 
@@ -421,8 +429,8 @@ const GenerateursPage = () => {
             <div className="flex items-center gap-2">
               <LockKeyhole size={18} className="text-amber-600" />
               <div>
-                <p className="text-amber-800 text-sm font-medium">Mode gratuit: 1 projet</p>
-                <p className="text-amber-700 text-xs">Activez une licence pour des projets illimités</p>
+                <p className="text-amber-800 text-sm font-medium">Mode gratuit: 1 projet uniquement</p>
+                <p className="text-amber-700 text-xs">Une fois terminé, vous n'aurez plus accès au générateur sans licence.</p>
               </div>
             </div>
             <Button 
@@ -431,7 +439,7 @@ const GenerateursPage = () => {
               className="bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-200"
               onClick={() => setIsLicenseDialogOpen(true)}
             >
-              Activer
+              Activer une licence
             </Button>
           </div>
         )}
@@ -449,6 +457,7 @@ const GenerateursPage = () => {
                 <button 
                   onClick={resetWorkflow}
                   className="flex items-center gap-1 text-xs py-1.5 px-3 rounded-full bg-tva-primary text-white"
+                  disabled={!canCreateNewProject()}
                 >
                   <Plus size={12} />
                   Nouveau projet
@@ -482,8 +491,8 @@ const GenerateursPage = () => {
                               {getStatusLabel(project.status)}
                             </span>
                             {!hasLicense && index === 0 && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                                Gratuit
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">
+                                Projet Gratuit
                               </span>
                             )}
                           </div>
@@ -653,7 +662,7 @@ const GenerateursPage = () => {
             <div className="flex items-center justify-between p-4 bg-tva-surface rounded-lg">
               <div>
                 <p className="font-medium">Plan gratuit</p>
-                <p className="text-sm text-tva-text/70">1 projet</p>
+                <p className="text-sm text-tva-text/70">1 projet uniquement</p>
               </div>
               <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                 Actif
