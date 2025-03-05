@@ -5,6 +5,8 @@ import { signUp } from "@/services/authService";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CheckCircle } from "lucide-react";
 
 export const SignupForm: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +16,7 @@ export const SignupForm: React.FC = () => {
     username: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -37,10 +40,31 @@ export const SignupForm: React.FC = () => {
     setIsLoading(false);
     
     if (!error) {
+      setIsSuccess(true);
       toast.success("Inscription réussie! Veuillez vérifier votre email pour confirmer votre compte.");
-      navigate("/auth/login");
     }
   };
+
+  if (isSuccess) {
+    return (
+      <div className="space-y-6 w-full max-w-md">
+        <Alert className="bg-green-50 border-green-200">
+          <CheckCircle className="h-5 w-5 text-green-600" />
+          <AlertTitle className="text-green-800">Inscription réussie!</AlertTitle>
+          <AlertDescription className="text-green-700">
+            Nous avons envoyé un email de confirmation à <span className="font-medium">{formData.email}</span>.
+            <br />Veuillez vérifier votre boîte de réception et confirmer votre compte.
+          </AlertDescription>
+        </Alert>
+        <Button 
+          onClick={() => navigate("/auth", { state: { defaultTab: "login" } })} 
+          className="w-full"
+        >
+          Retour à la page de connexion
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">

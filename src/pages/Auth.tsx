@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useNavigate, Navigate, useSearchParams } from "react-router-dom";
+import { useNavigate, Navigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { SignupForm } from "@/components/SignupForm";
@@ -13,10 +13,18 @@ import { AppLayout } from "@/components/AppLayout";
 const Auth = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState(() => {
-    // Check if the URL has a 'tab' parameter for reset-password
+    // Check URL parameters first
     const tabParam = searchParams.get("tab");
-    return tabParam === "reset-password" ? "reset-password" : "login";
+    if (tabParam === "reset-password") return "reset-password";
+    
+    // Then check location state (for redirects from other components)
+    const state = location.state as { defaultTab?: string } | null;
+    if (state?.defaultTab) return state.defaultTab;
+    
+    // Default to login
+    return "login";
   });
   const navigate = useNavigate();
 
