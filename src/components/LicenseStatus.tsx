@@ -88,7 +88,7 @@ export const LicenseStatus: React.FC = () => {
             </div>
           ) : (
             <p className="text-sm text-tva-text/70">
-              Activez une licence pour débloquer toutes les fonctionnalités premium de TikViral.
+              Activez une licence pour débloquer toutes les fonctionnalités premium de TikViral pour 30 jours.
             </p>
           )}
         </div>

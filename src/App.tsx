@@ -16,7 +16,6 @@ import AnalysePage from "./pages/Analyse";
 import TelechargementPage from "./pages/Telechargement";
 import TendancePage from "./pages/Tendance";
 import ProfilePage from "./pages/Profile";
-import AdminLicensesPage from "./pages/admin/AdminLicenses"; 
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -84,14 +83,6 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <ProfilePage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/admin/licenses" 
-                element={
-                  <ProtectedRoute>
-                    <AdminLicensesPage />
                   </ProtectedRoute>
                 } 
               />

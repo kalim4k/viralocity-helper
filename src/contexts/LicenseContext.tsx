@@ -44,7 +44,7 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setIsLoadingLicense(true);
       
-      // Utilisation d'une requête directe sans vérifications complexes
+      // Utilisation d'une requête directe
       const { data, error } = await supabase
         .from('licenses')
         .select('license_key, status, expires_at')
@@ -173,7 +173,7 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
       // Refresh license status
       await checkLicenseStatus();
       
-      toast.success("Licence activée avec succès!");
+      toast.success("Licence activée avec succès! Accès débloqué pour 30 jours.");
       return true;
     } catch (error) {
       console.error('Error activating license:', error);

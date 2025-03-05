@@ -28,7 +28,6 @@ export const LicenseRequired: React.FC = () => {
       const success = await activateLicense(licenseKey.trim());
       
       if (!success) {
-        // L'erreur a déjà été affichée par le toast dans la fonction activateLicense
         setActivationError("Échec de l'activation. Veuillez vérifier que votre clé est valide.");
       }
     } catch (error) {
@@ -57,7 +56,7 @@ export const LicenseRequired: React.FC = () => {
             <AlertTriangle size={20} className="text-amber-500 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm">
-                Vous n'avez pas de licence active. Entrez votre clé de licence ci-dessous pour débloquer toutes les fonctionnalités de TikViral.
+                Vous n'avez pas de licence active. Entrez votre clé de licence ci-dessous pour débloquer toutes les fonctionnalités de TikViral pour 30 jours.
               </p>
             </div>
           </div>
