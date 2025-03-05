@@ -1,17 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { TikTokProfile, TikTokProfileAnalysis } from '@/types/tiktok.types';
-import { Json } from '@/integrations/supabase/types';
-
-// Helper function to safely convert any value to a JSON compatible type
-function toJson<T>(value: T): Json {
-  return value as unknown as Json;
-}
-
-// Helper function to safely convert JSON back to a specific type
-function fromJson<T>(json: Json): T {
-  return json as unknown as T;
-}
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * Sauvegarde une analyse de profil TikTok dans la base de données
@@ -34,8 +24,8 @@ export const saveProfileAnalysis = async (
       .insert({
         user_id: currentUser.user.id,
         tiktok_username: username,
-        profile_data: toJson(profileData),
-        analysis_results: toJson(analysisResults),
+        profile_data: profileData,
+        analysis_results: analysisResults,
         image_data: imageData
       })
       .select('id')
@@ -91,8 +81,8 @@ export const getProfileAnalysis = async (analysisId: string) => {
     
     return {
       username: data.tiktok_username,
-      profile: fromJson<TikTokProfile>(data.profile_data),
-      analysis: fromJson<TikTokProfileAnalysis>(data.analysis_results),
+      profile: data.profile_data as TikTokProfile,
+      analysis: data.analysis_results as TikTokProfileAnalysis,
       imageData: data.image_data,
       createdAt: data.created_at
     };

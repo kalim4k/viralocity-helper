@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -13,43 +13,12 @@ import {
 import { Key, Copy, Download, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 
 export const GenerateLicenseKeys: React.FC = () => {
-  const { user } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [price, setPrice] = useState<number | ''>('');
   const [generatedKeys, setGeneratedKeys] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isAdminChecked, setIsAdminChecked] = useState(false);
-
-  // Check if the current user is an admin when the component mounts
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase.rpc('is_admin', {
-          user_id: user.id
-        });
-        
-        if (error) {
-          console.error('Error checking admin status:', error);
-          toast.error('Erreur lors de la vérification des droits administrateur');
-        } else {
-          setIsAdminChecked(true);
-          if (!data) {
-            toast.error('Vous n\'avez pas les droits pour générer des clés');
-          }
-        }
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-        setIsAdminChecked(false);
-      }
-    };
-
-    checkAdminStatus();
-  }, [user]);
 
   // Generate a random license key
   const generateRandomKey = () => {
@@ -74,28 +43,6 @@ export const GenerateLicenseKeys: React.FC = () => {
       return;
     }
 
-    if (!user) {
-      toast.error('Vous devez être connecté pour générer des clés');
-      return;
-    }
-
-    // Double-check admin status before generating keys
-    try {
-      const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin', {
-        user_id: user.id
-      });
-      
-      if (adminError || !isAdmin) {
-        console.error('Admin check failed:', adminError);
-        toast.error('Vous n\'avez pas les droits pour générer des clés');
-        return;
-      }
-    } catch (error) {
-      console.error('Admin check failed:', error);
-      toast.error('Erreur lors de la vérification des droits');
-      return;
-    }
-
     setIsGenerating(true);
     const keys: string[] = [];
     const keysToInsert = [];
@@ -107,26 +54,17 @@ export const GenerateLicenseKeys: React.FC = () => {
         keys.push(licenseKey);
         keysToInsert.push({
           license_key: licenseKey,
-          price: price || null,
-          status: 'inactive',
-          admin_id: user.id
+          price: price || null
         });
       }
 
-      console.log('Keys to insert:', keysToInsert);
-
       // Insert keys into database
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('licenses')
-        .insert(keysToInsert)
-        .select();
+        .insert(keysToInsert);
 
-      if (error) {
-        console.error('Database error:', error);
-        throw new Error(error.message);
-      }
+      if (error) throw error;
 
-      console.log('Inserted licenses:', data);
       setGeneratedKeys(keys);
       toast.success(`${quantity} clé${quantity > 1 ? 's' : ''} de licence générée${quantity > 1 ? 's' : ''}`);
     } catch (error) {
@@ -232,7 +170,7 @@ export const GenerateLicenseKeys: React.FC = () => {
         <Button 
           className="w-full" 
           onClick={handleGenerateKeys}
-          disabled={isGenerating || !isAdminChecked}
+          disabled={isGenerating}
         >
           {isGenerating ? (
             'Génération en cours...'

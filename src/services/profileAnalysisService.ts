@@ -1,4 +1,5 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+
+import { google } from '@google/generative-ai';
 import { TikTokProfile, TikTokProfileAnalysis } from '@/types/tiktok.types';
 
 /**
