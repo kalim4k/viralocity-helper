@@ -1,4 +1,3 @@
-
 import { 
   fetchTrendingVideos, 
   fetchTrendingCreators, 
@@ -19,13 +18,12 @@ import {
  */
 export async function getTrendingVideos(country: string = 'US'): Promise<TrendingVideo[]> {
   try {
-    const response = await fetchTrendingVideos(country);
+    console.log('getTrendingVideos called with country:', country);
+    const videos = await fetchTrendingVideos(country);
+    console.log('getTrendingVideos response:', videos);
     
-    if (response.code === 0 && response.data && response.data.videos) {
-      return response.data.videos;
-    }
-    
-    return [];
+    // Direct return of array from the API
+    return videos || [];
   } catch (error) {
     console.error('Error in trendingService.getTrendingVideos:', error);
     throw new Error(`Erreur lors de la récupération des vidéos en tendance: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
@@ -39,13 +37,12 @@ export async function getTrendingVideos(country: string = 'US'): Promise<Trendin
  */
 export async function getTrendingCreators(country: string = 'US'): Promise<TrendingCreator[]> {
   try {
-    const response = await fetchTrendingCreators(country);
+    console.log('getTrendingCreators called with country:', country);
+    const creators = await fetchTrendingCreators(country);
+    console.log('getTrendingCreators response:', creators);
     
-    if (response.code === 0 && response.data && response.data.creators) {
-      return response.data.creators;
-    }
-    
-    return [];
+    // Direct return of array from the API
+    return creators || [];
   } catch (error) {
     console.error('Error in trendingService.getTrendingCreators:', error);
     throw new Error(`Erreur lors de la récupération des créateurs en tendance: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
@@ -59,13 +56,12 @@ export async function getTrendingCreators(country: string = 'US'): Promise<Trend
  */
 export async function getTrendingSongs(country: string = 'US'): Promise<TrendingSong[]> {
   try {
-    const response = await fetchTrendingSongs(country);
+    console.log('getTrendingSongs called with country:', country);
+    const songs = await fetchTrendingSongs(country);
+    console.log('getTrendingSongs response:', songs);
     
-    if (response.code === 0 && response.data && response.data.sound_list) {
-      return response.data.sound_list;
-    }
-    
-    return [];
+    // Direct return of array from the API
+    return songs || [];
   } catch (error) {
     console.error('Error in trendingService.getTrendingSongs:', error);
     throw new Error(`Erreur lors de la récupération des chansons en tendance: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
@@ -79,13 +75,12 @@ export async function getTrendingSongs(country: string = 'US'): Promise<Trending
  */
 export async function getTrendingHashtags(country: string = 'US'): Promise<TrendingHashtag[]> {
   try {
-    const response = await fetchTrendingHashtags(country);
+    console.log('getTrendingHashtags called with country:', country);
+    const hashtags = await fetchTrendingHashtags(country);
+    console.log('getTrendingHashtags response:', hashtags);
     
-    if (response.code === 0 && response.data && response.data.list) {
-      return response.data.list;
-    }
-    
-    return [];
+    // Direct return of array from the API
+    return hashtags || [];
   } catch (error) {
     console.error('Error in trendingService.getTrendingHashtags:', error);
     throw new Error(`Erreur lors de la récupération des hashtags en tendance: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
