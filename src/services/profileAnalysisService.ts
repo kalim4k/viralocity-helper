@@ -20,7 +20,7 @@ export const analyzeTikTokProfile = async (
     const analysis = await geminiService.analyzeTikTokProfileWithImage(profile, imageDataUrl);
     
     return analysis;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error analyzing TikTok profile:', error);
     toast.error(`Erreur d'analyse: ${error.message}`);
     throw error;

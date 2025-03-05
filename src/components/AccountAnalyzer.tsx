@@ -9,7 +9,7 @@ import { formatNumber } from '@/utils/formatters';
 import { Progress } from '@/components/ui/progress';
 
 export const AccountAnalyzer: React.FC = () => {
-  const [step, setStep] = useState<'upload' | 'scan' | 'username' | 'analysis'>('upload');
+  const [step, setStep] = useState<'upload' | 'capture-preview' | 'scan' | 'username' | 'analysis'>('upload');
   const [image, setImage] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
@@ -19,21 +19,32 @@ export const AccountAnalyzer: React.FC = () => {
   const [analysis, setAnalysis] = useState<TikTokProfileAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [captureInProgress, setCaptureInProgress] = useState(false);
   const [detectionPoints, setDetectionPoints] = useState<{ x: number, y: number, label: string }[]>([]);
-  
+  const [transitionOverlay, setTransitionOverlay] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scanTimerRef = useRef<number | null>(null);
   const detectionTimerRef = useRef<number | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
-    // Cleanup timers on component unmount
     return () => {
-      if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
-      if (detectionTimerRef.current) window.clearInterval(detectionTimerRef.current);
+      cleanupResources();
     };
   }, []);
+
+  const cleanupResources = () => {
+    if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
+    if (detectionTimerRef.current) window.clearInterval(detectionTimerRef.current);
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(track => track.stop());
+      cameraStreamRef.current = null;
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -43,8 +54,7 @@ export const AccountAnalyzer: React.FC = () => {
     reader.onload = (event) => {
       if (event.target?.result) {
         setImage(event.target.result as string);
-        setStep('scan');
-        simulateScan();
+        startTransitionToScan();
       }
     };
     reader.readAsDataURL(file);
@@ -53,6 +63,7 @@ export const AccountAnalyzer: React.FC = () => {
   const startCamera = async () => {
     try {
       setShowCamera(true);
+      setIsCameraReady(false);
       
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -63,22 +74,28 @@ export const AccountAnalyzer: React.FC = () => {
           } 
         });
         
+        cameraStreamRef.current = stream;
+        
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.play();
-          
-          // Add detection frame overlay
-          setTimeout(() => {
-            // Simulate detection points appearing
-            const newPoints = [
-              { x: 25, y: 30, label: 'Profil' },
-              { x: 70, y: 40, label: 'Stats' },
-              { x: 50, y: 60, label: 'Bio' },
-              { x: 30, y: 80, label: 'Vidéos' }
-            ];
-            
-            setDetectionPoints(newPoints);
-          }, 1000);
+          videoRef.current.onloadedmetadata = () => {
+            if (videoRef.current) {
+              videoRef.current.play().then(() => {
+                setIsCameraReady(true);
+                
+                setTimeout(() => {
+                  const newPoints = [
+                    { x: 25, y: 30, label: 'Profil' },
+                    { x: 70, y: 40, label: 'Stats' },
+                    { x: 50, y: 60, label: 'Bio' },
+                    { x: 30, y: 80, label: 'Vidéos' }
+                  ];
+                  
+                  setDetectionPoints(newPoints);
+                }, 800);
+              });
+            }
+          };
         }
       }
     } catch (err) {
@@ -89,41 +106,68 @@ export const AccountAnalyzer: React.FC = () => {
   };
 
   const capturePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
-      
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        const dataUrl = canvas.toDataURL('image/jpeg');
-        setImage(dataUrl);
-        
-        const stream = video.srcObject as MediaStream;
-        stream?.getTracks().forEach(track => track.stop());
-        
-        setShowCamera(false);
-        setStep('scan');
-        simulateScan();
-      }
+    if (!videoRef.current || !canvasRef.current || !cameraStreamRef.current || captureInProgress) {
+      return;
     }
+    
+    setCaptureInProgress(true);
+    
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      setImage(dataUrl);
+      
+      setTransitionOverlay(true);
+      
+      setStep('capture-preview');
+      
+      setTimeout(() => {
+        startTransitionToScan();
+      }, 600);
+    } else {
+      setCaptureInProgress(false);
+      toast.error("Erreur lors de la capture. Veuillez réessayer.");
+    }
+  };
+
+  const startTransitionToScan = () => {
+    setScanProgress(0);
+    
+    setTimeout(() => {
+      setTransitionOverlay(false);
+      setStep('scan');
+      setIsScanning(true);
+      simulateScan();
+      
+      setTimeout(() => {
+        if (cameraStreamRef.current) {
+          cameraStreamRef.current.getTracks().forEach(track => track.stop());
+          cameraStreamRef.current = null;
+        }
+        setShowCamera(false);
+        setCaptureInProgress(false);
+      }, 300);
+    }, 400);
   };
 
   const simulateScan = () => {
     setIsScanning(true);
-    setScanProgress(0);
-    setDetectionPoints([]);
     
-    // Simulate scan progression
+    const baseDetectionPoints = detectionPoints.length ? detectionPoints : [];
+    
     if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
     
     scanTimerRef.current = window.setInterval(() => {
       setScanProgress(prev => {
-        const newProgress = prev + 2;
+        const newProgress = prev + 1.5;
         if (newProgress >= 100) {
           if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
           setTimeout(() => {
@@ -136,10 +180,9 @@ export const AccountAnalyzer: React.FC = () => {
       });
     }, 80);
     
-    // Simulate detection points appearing during scan
     if (detectionTimerRef.current) window.clearInterval(detectionTimerRef.current);
     
-    const detectionPoints = [
+    const additionalDetectionPoints = [
       { x: 25, y: 30, label: 'Avatar' },
       { x: 70, y: 25, label: 'Username' },
       { x: 40, y: 50, label: 'Followers' },
@@ -147,12 +190,16 @@ export const AccountAnalyzer: React.FC = () => {
       { x: 30, y: 70, label: 'Content' },
       { x: 75, y: 60, label: 'Likes' },
       { x: 55, y: 80, label: 'Engagement' }
-    ];
+    ].filter(point => 
+      !baseDetectionPoints.some(existing => 
+        Math.abs(existing.x - point.x) < 10 && Math.abs(existing.y - point.y) < 10
+      )
+    );
     
     let index = 0;
     detectionTimerRef.current = window.setInterval(() => {
-      if (index < detectionPoints.length) {
-        setDetectionPoints(prev => [...prev, detectionPoints[index]]);
+      if (index < additionalDetectionPoints.length) {
+        setDetectionPoints(prev => [...prev, additionalDetectionPoints[index]]);
         index++;
       } else {
         if (detectionTimerRef.current) window.clearInterval(detectionTimerRef.current);
@@ -170,11 +217,9 @@ export const AccountAnalyzer: React.FC = () => {
     setError(null);
     
     try {
-      // Récupération du profil TikTok
       const profileData = await fetchTikTokProfile(username);
       setProfile(profileData);
       
-      // Analyse du profil avec Gemini
       const analysisResult = await analyzeTikTokProfile(profileData, image);
       setAnalysis(analysisResult);
       
@@ -231,7 +276,7 @@ export const AccountAnalyzer: React.FC = () => {
           </div>
           
           {showCamera && (
-            <div className="mt-4 relative rounded-xl overflow-hidden">
+            <div className={`mt-4 relative rounded-xl overflow-hidden transition-opacity duration-300 ${isCameraReady ? 'opacity-100' : 'opacity-0'}`}>
               <video 
                 ref={videoRef} 
                 className="w-full rounded-lg"
@@ -241,25 +286,30 @@ export const AccountAnalyzer: React.FC = () => {
               />
               <canvas ref={canvasRef} className="hidden" />
               
-              {/* Scan overlay */}
-              <div className="absolute inset-0 pointer-events-none border-2 border-tva-primary/50 z-10">
+              {!isCameraReady && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                  <div className="w-10 h-10 border-4 border-tva-primary border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+              
+              <div className={`absolute inset-0 pointer-events-none border-2 border-tva-primary/50 z-10 transition-opacity duration-300 ${isCameraReady ? 'opacity-100' : 'opacity-0'}`}>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-[80%] h-[80%] border-2 border-tva-primary border-dashed rounded-md flex items-center justify-center">
+                  <div className="w-[80%] h-[80%] border-2 border-tva-primary border-dashed rounded-md flex items-center justify-center animate-pulse">
                     <div className="text-xs text-white bg-black/50 px-2 py-1 rounded">
                       Centrez le profil TikTok
                     </div>
                   </div>
                 </div>
                 
-                {/* Detection points */}
                 {detectionPoints.map((point, idx) => (
                   <div 
                     key={idx} 
-                    className="absolute animate-pulse"
+                    className="absolute animate-fade-in"
                     style={{
                       left: `${point.x}%`,
                       top: `${point.y}%`,
-                      transform: 'translate(-50%, -50%)'
+                      transform: 'translate(-50%, -50%)',
+                      animationDelay: `${idx * 100}ms`
                     }}
                   >
                     <div className="flex items-center gap-1">
@@ -271,7 +321,6 @@ export const AccountAnalyzer: React.FC = () => {
                   </div>
                 ))}
                 
-                {/* Corner brackets */}
                 <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-tva-primary"></div>
                 <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-tva-primary"></div>
                 <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-tva-primary"></div>
@@ -280,13 +329,78 @@ export const AccountAnalyzer: React.FC = () => {
               
               <button
                 onClick={capturePhoto}
-                className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white text-tva-primary py-2 px-6 rounded-full font-medium flex items-center gap-2 shadow-lg"
+                disabled={!isCameraReady || captureInProgress}
+                className={`absolute bottom-4 left-1/2 transform -translate-x-1/2 
+                  ${!isCameraReady || captureInProgress ? 'bg-white/60 text-tva-primary/60' : 'bg-white text-tva-primary'} 
+                  py-2 px-6 rounded-full font-medium flex items-center gap-2 shadow-lg transition-opacity duration-300
+                  ${isCameraReady ? 'opacity-100' : 'opacity-0'}`}
               >
-                <Camera size={18} />
-                <span>Capturer</span>
+                {captureInProgress ? (
+                  <>
+                    <RefreshCw size={18} className="animate-spin" />
+                    <span>Capture...</span>
+                  </>
+                ) : (
+                  <>
+                    <Camera size={18} />
+                    <span>Capturer</span>
+                  </>
+                )}
               </button>
             </div>
           )}
+        </section>
+      )}
+      
+      {step === 'capture-preview' && (
+        <section className="glass p-6 rounded-xl space-y-6">
+          <div className="text-center">
+            <h2 className="text-lg font-semibold mb-2">Traitement en cours</h2>
+            <p className="text-sm text-tva-text/70">
+              Préparation de l'image pour analyse...
+            </p>
+          </div>
+          
+          <div className="relative">
+            {image && (
+              <div className="relative rounded-lg overflow-hidden">
+                <img src={image} alt="Capture" className="w-full" />
+                
+                {transitionOverlay && (
+                  <div className="absolute inset-0 bg-gradient-to-b from-tva-primary/10 to-tva-primary/20 backdrop-blur-[1px] animate-pulse flex items-center justify-center">
+                    <div className="bg-black/40 backdrop-blur-sm p-4 rounded-lg">
+                      <div className="flex flex-col items-center">
+                        <Sparkles size={20} className="text-tva-primary mb-2 animate-pulse" />
+                        <p className="text-white text-sm">Préparation de l'analyse</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="absolute inset-0">
+                  {detectionPoints.map((point, idx) => (
+                    <div 
+                      key={idx} 
+                      className="absolute"
+                      style={{
+                        left: `${point.x}%`,
+                        top: `${point.y}%`,
+                        transform: 'translate(-50%, -50%)'
+                      }}
+                    >
+                      <div className="relative">
+                        <Hexagon size={16} className="text-tva-primary/80 animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="w-full flex justify-center">
+            <div className="w-8 h-8 border-4 border-tva-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
         </section>
       )}
       
@@ -306,9 +420,7 @@ export const AccountAnalyzer: React.FC = () => {
                 
                 {isScanning && (
                   <div className="absolute inset-0 bg-gradient-to-b from-tva-primary/10 to-tva-primary/30 animate-pulse">
-                    {/* Scanning effect with grid */}
                     <div className="absolute inset-0 backdrop-blur-[1px]">
-                      {/* Grid lines */}
                       <div className="absolute inset-0 backdrop-blur-[1px] opacity-30">
                         {Array.from({ length: 20 }).map((_, i) => (
                           <div 
@@ -326,21 +438,24 @@ export const AccountAnalyzer: React.FC = () => {
                         ))}
                       </div>
                       
-                      {/* Scan line */}
                       <div 
-                        className="absolute left-0 right-0 h-1 bg-tva-primary shadow-[0_0_15px_rgba(79,70,229,0.8)] transition-all duration-500 ease-linear"
-                        style={{ top: `${scanProgress}%` }}
+                        className="absolute left-0 right-0 h-1 bg-tva-primary shadow-[0_0_15px_rgba(79,70,229,0.8)]"
+                        style={{ 
+                          top: `${scanProgress}%`,
+                          transition: 'top 0.5s ease-out'
+                        }}
                       ></div>
                       
-                      {/* Detection points */}
                       {detectionPoints.map((point, idx) => (
                         <div 
                           key={idx} 
-                          className="absolute animate-fade-in"
+                          className="absolute"
                           style={{
                             left: `${point.x}%`,
                             top: `${point.y}%`,
-                            transform: 'translate(-50%, -50%)'
+                            transform: 'translate(-50%, -50%)',
+                            opacity: idx < 4 ? 1 : scanProgress > point.y ? 1 : 0.2,
+                            transition: 'opacity 0.3s ease-out'
                           }}
                         >
                           <div className="relative">
@@ -355,7 +470,6 @@ export const AccountAnalyzer: React.FC = () => {
                             </div>
                           </div>
                           
-                          {/* Randomly position small dots around the detection point */}
                           {Array.from({ length: 3 }).map((_, dotIdx) => {
                             const angle = Math.random() * Math.PI * 2;
                             const distance = 15 + Math.random() * 25;
@@ -378,7 +492,6 @@ export const AccountAnalyzer: React.FC = () => {
                         </div>
                       ))}
                       
-                      {/* Central scanning info */}
                       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
                         <div className="bg-black/50 backdrop-blur-sm p-3 rounded-lg flex flex-col items-center justify-center">
                           <div className="flex items-center space-x-3 mb-2">
@@ -407,7 +520,7 @@ export const AccountAnalyzer: React.FC = () => {
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <span>Analyse d'image</span>
-              <span>{scanProgress}%</span>
+              <span>{Math.floor(scanProgress)}%</span>
             </div>
             <Progress value={scanProgress} className="h-2" />
           </div>

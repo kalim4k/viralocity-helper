@@ -1,7 +1,6 @@
 
 import { toast } from 'sonner';
-import { RapidAPIResponse, TikTokProfile } from '@/types/tiktok.types';
-import { mapTikTokProfileData } from './mappers/tiktokMapper';
+import { TikTokProfile } from '@/types/tiktok.types';
 
 // API configuration
 const API_KEY = 'bd18f4b949msh6edd4e1d444b6a0p18d393jsnf0169527896e';
@@ -12,7 +11,7 @@ const API_HOST = 'tiktok-api6.p.rapidapi.com';
  * @param username TikTok username
  * @returns Promise with the TikTok profile data
  */
-export const fetchTikTokProfile = async (username: string) => {
+export const fetchTikTokProfile = async (username: string): Promise<TikTokProfile> => {
   console.log(`Fetching TikTok profile for username: ${username}`);
   
   try {
@@ -67,7 +66,7 @@ export const fetchTikTokProfile = async (username: string) => {
     };
     
     return profileData;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching TikTok profile:', error);
     toast.error(`Erreur lors de la récupération du profil: ${error.message}`);
     throw error;
