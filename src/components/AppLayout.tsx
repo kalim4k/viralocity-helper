@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { BottomNavigation } from './BottomNavigation';
@@ -10,10 +10,18 @@ interface AppLayoutProps {
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const location = useLocation();
+  const [isRouteChanging, setIsRouteChanging] = useState(false);
 
-  // Scroll to top when route changes
+  // Handle route changes
   useEffect(() => {
+    setIsRouteChanging(true);
     window.scrollTo(0, 0);
+    
+    const timeout = setTimeout(() => {
+      setIsRouteChanging(false);
+    }, 300);
+    
+    return () => clearTimeout(timeout);
   }, [location.pathname]);
 
   return (
@@ -26,8 +34,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       <Header />
       
       <main className="flex-1 pb-20 px-4 pt-4 max-w-3xl mx-auto w-full relative z-10">
-        {/* Removed key={location.pathname} to prevent re-mounting */}
-        <div className="transition-opacity duration-300 ease-in-out">
+        <div 
+          className={`transition-opacity duration-300 ease-in-out ${
+            isRouteChanging ? 'opacity-0' : 'opacity-100'
+          }`}
+        >
           {children}
         </div>
       </main>
