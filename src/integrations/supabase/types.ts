@@ -9,6 +9,84 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      generated_projects: {
+        Row: {
+          analysis: Json | null
+          created_at: string
+          description: string | null
+          id: string
+          idea: Json | null
+          metadata: Json | null
+          script: Json | null
+          script_type: string | null
+          status: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          idea?: Json | null
+          metadata?: Json | null
+          script?: Json | null
+          script_type?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          idea?: Json | null
+          metadata?: Json | null
+          script?: Json | null
+          script_type?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profile_analyses: {
+        Row: {
+          analysis_results: Json
+          created_at: string
+          id: string
+          image_data: string | null
+          profile_data: Json
+          tiktok_username: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_results: Json
+          created_at?: string
+          id?: string
+          image_data?: string | null
+          profile_data: Json
+          tiktok_username: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_results?: Json
+          created_at?: string
+          id?: string
+          image_data?: string | null
+          profile_data?: Json
+          tiktok_username?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -32,6 +110,113 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      tiktok_accounts: {
+        Row: {
+          avatar: string
+          bio: string | null
+          created_at: string
+          display_name: string
+          followers: number
+          following: number | null
+          id: string
+          likes: number
+          tiktok_id: string
+          updated_at: string
+          user_id: string
+          username: string
+          verified: boolean | null
+          video_count: number | null
+        }
+        Insert: {
+          avatar: string
+          bio?: string | null
+          created_at?: string
+          display_name: string
+          followers: number
+          following?: number | null
+          id?: string
+          likes: number
+          tiktok_id: string
+          updated_at?: string
+          user_id: string
+          username: string
+          verified?: boolean | null
+          video_count?: number | null
+        }
+        Update: {
+          avatar?: string
+          bio?: string | null
+          created_at?: string
+          display_name?: string
+          followers?: number
+          following?: number | null
+          id?: string
+          likes?: number
+          tiktok_id?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+          verified?: boolean | null
+          video_count?: number | null
+        }
+        Relationships: []
+      }
+      tiktok_videos: {
+        Row: {
+          comments: number | null
+          create_time: string | null
+          created_at: string
+          description: string | null
+          id: string
+          likes: number | null
+          shares: number | null
+          thumbnail: string
+          tiktok_account_id: string
+          title: string
+          updated_at: string
+          video_id: string
+          views: number
+        }
+        Insert: {
+          comments?: number | null
+          create_time?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          likes?: number | null
+          shares?: number | null
+          thumbnail: string
+          tiktok_account_id: string
+          title: string
+          updated_at?: string
+          video_id: string
+          views: number
+        }
+        Update: {
+          comments?: number | null
+          create_time?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          likes?: number | null
+          shares?: number | null
+          thumbnail?: string
+          tiktok_account_id?: string
+          title?: string
+          updated_at?: string
+          video_id?: string
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tiktok_videos_tiktok_account_id_fkey"
+            columns: ["tiktok_account_id"]
+            isOneToOne: false
+            referencedRelation: "tiktok_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

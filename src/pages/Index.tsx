@@ -1,11 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
 import { Flame } from 'lucide-react';
 import { TikTokConnectModal, TikTokProfile } from '../components/TikTokConnectModal';
 import { TikTokProfileCard } from '../components/TikTokProfileCard';
 import { TikTokVideoGrid } from '../components/TikTokVideoGrid';
+import { saveTikTokAccount, getDefaultTikTokAccount } from '@/services/tiktokAccountService';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 // Create a TikTok icon component
 const TiktokIcon = () => (
@@ -27,11 +30,43 @@ const TiktokIcon = () => (
 
 const Index = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [isConnected, setIsConnected] = useState(false);
   const [profile, setProfile] = useState<TikTokProfile | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Charger le compte TikTok de l'utilisateur au chargement du composant
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadDefaultAccount();
+    } else {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated]);
+  
+  const loadDefaultAccount = async () => {
+    try {
+      setIsLoading(true);
+      const account = await getDefaultTikTokAccount();
+      
+      if (account) {
+        setProfile(account);
+        setIsConnected(true);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement du compte TikTok:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   const handleConnectTikTok = () => {
+    if (!isAuthenticated) {
+      toast.error("Veuillez vous connecter pour accéder à cette fonctionnalité");
+      navigate('/auth');
+      return;
+    }
     setIsModalOpen(true);
   };
   
@@ -39,9 +74,20 @@ const Index = () => {
     setIsModalOpen(false);
   };
   
-  const handleConnectionSuccess = (profileData: TikTokProfile) => {
+  const handleConnectionSuccess = async (profileData: TikTokProfile) => {
     setIsConnected(true);
     setProfile(profileData);
+    
+    // Sauvegarder le compte TikTok dans la base de données
+    if (isAuthenticated) {
+      try {
+        await saveTikTokAccount(profileData);
+        toast.success('Compte TikTok sauvegardé avec succès!');
+      } catch (error) {
+        console.error('Erreur lors de la sauvegarde du compte TikTok:', error);
+        toast.error('Erreur lors de la sauvegarde du compte TikTok');
+      }
+    }
   };
   
   return (
@@ -62,7 +108,11 @@ const Index = () => {
           </p>
         </section>
         
-        {!isConnected ? (
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="w-8 h-8 border-2 border-tva-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : !isConnected ? (
           <section className="glass p-7 rounded-2xl text-center space-y-6 animate-pulse-soft">
             <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-tva-primary to-tva-secondary flex items-center justify-center">
               <TiktokIcon />
