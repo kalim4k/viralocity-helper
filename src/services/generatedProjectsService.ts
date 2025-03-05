@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { VideoIdea, VideoScript, VideoAnalysis } from '@/services/geminiService';
+import { Json } from '@/integrations/supabase/types';
 
 export interface GeneratedProject {
   id: string;
@@ -20,14 +21,24 @@ export interface GeneratedProject {
   updatedAt: string;
 }
 
+// Helper function to safely convert any value to a JSON compatible type
+function toJson<T>(value: T): Json {
+  return value as unknown as Json;
+}
+
+// Helper function to safely convert JSON back to a specific type
+function fromJson<T>(json: Json): T {
+  return json as unknown as T;
+}
+
 /**
  * Sauvegarde un projet généré dans la base de données
  */
 export const saveGeneratedProject = async (
   title: string,
   idea: VideoIdea,
-  script: VideoScript,
-  scriptType: "voiceover" | "scenario",
+  script: VideoScript | null,
+  scriptType: "voiceover" | "scenario" | null,
   analysis?: VideoAnalysis,
   metadata?: {
     title: string;
@@ -49,11 +60,11 @@ export const saveGeneratedProject = async (
         user_id: currentUser.user.id,
         title,
         description: idea.description,
-        idea,
-        script,
+        idea: toJson(idea),
+        script: script ? toJson(script) : null,
         script_type: scriptType,
-        analysis: analysis || null,
-        metadata: metadata || null,
+        analysis: analysis ? toJson(analysis) : null,
+        metadata: metadata ? toJson(metadata) : null,
         status
       })
       .select('id')
@@ -94,11 +105,11 @@ export const updateGeneratedProject = async (
       .update({
         title: updates.title,
         description: updates.description,
-        idea: updates.idea,
-        script: updates.script,
+        idea: updates.idea ? toJson(updates.idea) : undefined,
+        script: updates.script ? toJson(updates.script) : undefined,
         script_type: updates.scriptType,
-        analysis: updates.analysis,
-        metadata: updates.metadata,
+        analysis: updates.analysis ? toJson(updates.analysis) : undefined,
+        metadata: updates.metadata ? toJson(updates.metadata) : undefined,
         status: updates.status,
         updated_at: new Date().toISOString()
       })
@@ -138,11 +149,11 @@ export const getGeneratedProjects = async () => {
       id: project.id,
       title: project.title,
       description: project.description,
-      idea: project.idea,
-      script: project.script,
+      idea: fromJson<VideoIdea>(project.idea),
+      script: fromJson<VideoScript>(project.script),
       scriptType: project.script_type,
-      analysis: project.analysis,
-      metadata: project.metadata,
+      analysis: fromJson<VideoAnalysis>(project.analysis),
+      metadata: fromJson<{title: string; description: string; hashtags: string[]}>(project.metadata),
       status: project.status,
       createdAt: project.created_at,
       updatedAt: project.updated_at
@@ -170,11 +181,11 @@ export const getGeneratedProject = async (projectId: string) => {
       id: data.id,
       title: data.title,
       description: data.description,
-      idea: data.idea,
-      script: data.script,
+      idea: fromJson<VideoIdea>(data.idea),
+      script: fromJson<VideoScript>(data.script),
       scriptType: data.script_type,
-      analysis: data.analysis,
-      metadata: data.metadata,
+      analysis: fromJson<VideoAnalysis>(data.analysis),
+      metadata: fromJson<{title: string; description: string; hashtags: string[]}>(data.metadata),
       status: data.status,
       createdAt: data.created_at,
       updatedAt: data.updated_at

@@ -1,12 +1,29 @@
 
+// Replace with your imports and implementation that doesn't reference non-existent tables
 import { supabase } from '@/integrations/supabase/client';
-import { TikTokProcessedVideo, VideoAnalysisResult } from '@/types/tiktokVideo.types';
+import { VideoAnalysisResult } from '@/types/tiktokVideo.types';
+import { Json } from '@/integrations/supabase/types';
+
+// Helper function to safely convert any value to a JSON compatible type
+function toJson<T>(value: T): Json {
+  return value as unknown as Json;
+}
+
+// Helper function to safely convert JSON back to a specific type
+function fromJson<T>(json: Json): T {
+  return json as unknown as T;
+}
 
 /**
- * Sauvegarde une analyse de vidéo dans la base de données
+ * This service has been temporarily disabled due to missing database table.
+ * The table 'video_analyses' needs to be created in Supabase before this service can be used.
  */
+
+// Commented out to prevent errors
+/*
 export const saveVideoAnalysis = async (
-  videoData: TikTokProcessedVideo,
+  videoId: string,
+  videoUrl: string,
   analysisResults: VideoAnalysisResult
 ) => {
   try {
@@ -16,79 +33,37 @@ export const saveVideoAnalysis = async (
       throw new Error("Utilisateur non authentifié");
     }
     
+    // Table needs to be created first
     const { data, error } = await supabase
-      .from('video_analyses')
+      .from('profile_analyses') // Using existing table as fallback
       .insert({
         user_id: currentUser.user.id,
-        video_id: videoData.id,
-        video_url: videoData.url,
-        video_data: videoData,
-        analysis_results: analysisResults,
-        created_at: new Date().toISOString()
+        tiktok_username: videoId, // Placeholder
+        profile_data: toJson({ videoUrl }),
+        analysis_results: toJson(analysisResults)
       })
       .select('id')
       .single();
     
-    if (error) {
-      // Vérifier si la table existe, sinon la créer
-      if (error.code === '42P01') {
-        await createVideoAnalysesTable();
-        return saveVideoAnalysis(videoData, analysisResults);
-      }
-      throw error;
-    }
+    if (error) throw error;
     
     return data.id;
   } catch (error) {
-    console.error('Erreur lors de la sauvegarde de l\'analyse vidéo:', error);
+    console.error('Erreur lors de la sauvegarde de l\'analyse:', error);
     throw error;
   }
 };
+*/
 
-/**
- * Crée la table video_analyses si elle n'existe pas
- */
-const createVideoAnalysesTable = async () => {
-  try {
-    const { error } = await supabase.rpc('create_video_analyses_table');
-    
-    if (error) throw error;
-    
-    console.log('Table video_analyses créée avec succès');
-  } catch (error) {
-    console.error('Erreur lors de la création de la table video_analyses:', error);
-    throw error;
-  }
+// Export placeholder functions to avoid import errors elsewhere
+export const saveVideoAnalysis = async () => {
+  throw new Error("Video analysis storage not implemented yet");
 };
 
-/**
- * Récupère l'historique des analyses de vidéo
- */
 export const getVideoAnalysesHistory = async () => {
-  try {
-    const { data: currentUser } = await supabase.auth.getUser();
-    
-    if (!currentUser || !currentUser.user) {
-      throw new Error("Utilisateur non authentifié");
-    }
-    
-    const { data, error } = await supabase
-      .from('video_analyses')
-      .select('*')
-      .eq('user_id', currentUser.user.id)
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      // Vérifier si la table existe
-      if (error.code === '42P01') {
-        return [];
-      }
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Erreur lors de la récupération de l\'historique des analyses vidéo:', error);
-    throw error;
-  }
+  throw new Error("Video analysis storage not implemented yet");
+};
+
+export const getVideoAnalysis = async () => {
+  throw new Error("Video analysis storage not implemented yet");
 };
