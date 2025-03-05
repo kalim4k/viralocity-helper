@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, User, RefreshCw, CheckCircle, Clock, List } from 'lucide-react';
+import { Camera, Upload, User, RefreshCw, CheckCircle, Clock, List, XCircle, RotateCcw } from 'lucide-react';
 import { fetchTikTokProfile } from '@/services/tiktokService';
 import { analyzeTikTokProfile } from '@/services/profileAnalysisService';
 import { saveProfileAnalysis, getProfileAnalysesHistory } from '@/services/profileStorageService';
@@ -11,6 +10,7 @@ import { formatNumber } from '@/utils/formatters';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 
 export const AccountAnalyzer: React.FC = () => {
   const [step, setStep] = useState<'upload' | 'scan' | 'username' | 'analysis'>('upload');
@@ -25,9 +25,13 @@ export const AccountAnalyzer: React.FC = () => {
   const [analysisHistory, setAnalysisHistory] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
   const [isCameraFullscreen, setIsCameraFullscreen] = useState(false);
+  const [isCameraLoading, setIsCameraLoading] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isFrontCamera, setIsFrontCamera] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
@@ -42,6 +46,13 @@ export const AccountAnalyzer: React.FC = () => {
       setAnalysisHistory(history);
     } catch (err) {
       console.error('Erreur lors du chargement de l\'historique:', err);
+    }
+  };
+
+  const stopCameraStream = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
   };
 
@@ -72,11 +83,11 @@ export const AccountAnalyzer: React.FC = () => {
       
       const ctx = canvas.getContext('2d');
       if (ctx) {
+        ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+        
         const scanSize = Math.min(video.videoWidth, video.videoHeight) * 0.7;
         const scanX = (video.videoWidth - scanSize) / 2;
         const scanY = (video.videoHeight - scanSize) / 2;
-        
-        ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
         
         ctx.strokeStyle = '#4f46e5';
         ctx.lineWidth = 4;
@@ -86,34 +97,101 @@ export const AccountAnalyzer: React.FC = () => {
         console.log("Photo capturée et convertie en base64");
         setImage(dataUrl);
         
-        const stream = video.srcObject as MediaStream;
-        stream?.getTracks().forEach(track => track.stop());
+        stopCameraStream();
         
         setIsCameraFullscreen(false);
+        setCameraError(null);
         setStep('scan');
         simulateScan();
       }
     }
   };
 
-  const startCamera = async () => {
+  const switchCamera = async () => {
+    setIsFrontCamera(!isFrontCamera);
+    await startCamera(!isFrontCamera);
+  };
+
+  const startCamera = async (useFrontCamera = false) => {
     try {
       console.log("Démarrage de la caméra");
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-          setIsCameraFullscreen(true);
-          console.log("Caméra démarrée avec succès");
-        }
-      } else {
-        console.error("Le navigateur ne prend pas en charge la caméra");
-        toast("Votre navigateur ne prend pas en charge la caméra");
+      setIsCameraLoading(true);
+      setCameraError(null);
+      
+      stopCameraStream();
+      
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Votre navigateur ne prend pas en charge l'accès à la caméra");
+      }
+      
+      const permissionStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
+      
+      if (permissionStatus.state === 'denied') {
+        throw new Error("L'accès à la caméra a été bloqué. Veuillez modifier les paramètres de votre navigateur.");
+      }
+      
+      const facingMode = useFrontCamera ? "user" : "environment";
+      console.log(`Trying to access camera with facingMode: ${facingMode}`);
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: facingMode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      
+      streamRef.current = stream;
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play().catch(err => {
+            console.error("Erreur lors de la lecture de la vidéo:", err);
+            setCameraError("Impossible de démarrer la lecture vidéo");
+          });
+        };
+        
+        setIsCameraFullscreen(true);
+        setIsFrontCamera(useFrontCamera);
+        console.log("Caméra démarrée avec succès");
       }
     } catch (err) {
       console.error("Erreur d'accès à la caméra:", err);
-      toast("Erreur d'accès à la caméra. Veuillez autoriser l'accès ou utiliser l'option d'upload.");
+      let errorMessage = "Erreur d'accès à la caméra";
+      
+      if (err instanceof Error) {
+        if (err.name === 'NotAllowedError') {
+          errorMessage = "L'accès à la caméra a été refusé. Veuillez autoriser l'accès dans les paramètres de votre navigateur.";
+        } else if (err.name === 'NotFoundError') {
+          errorMessage = "Aucune caméra n'a été détectée sur votre appareil.";
+        } else if (err.name === 'NotReadableError') {
+          errorMessage = "La caméra est peut-être utilisée par une autre application.";
+        } else if (err.name === 'OverconstrainedError') {
+          try {
+            const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            streamRef.current = fallbackStream;
+            if (videoRef.current) {
+              videoRef.current.srcObject = fallbackStream;
+              await videoRef.current.play();
+              setIsCameraFullscreen(true);
+              console.log("Caméra démarrée avec les paramètres par défaut");
+              setIsCameraLoading(false);
+              return;
+            }
+          } catch (fallbackErr) {
+            errorMessage = "Impossible d'accéder à la caméra avec les paramètres demandés.";
+          }
+        } else {
+          errorMessage = err.message || errorMessage;
+        }
+      }
+      
+      setCameraError(errorMessage);
+      toast.error(errorMessage);
+      setIsCameraFullscreen(false);
+    } finally {
+      setIsCameraLoading(false);
     }
   };
 
@@ -193,33 +271,80 @@ export const AccountAnalyzer: React.FC = () => {
     setStep('analysis');
   };
 
-  // Render the camera fullscreen when active
   if (isCameraFullscreen) {
     return (
       <div className="fixed inset-0 bg-black z-50 flex flex-col">
         <div className="relative flex-1">
-          <video 
-            ref={videoRef} 
-            className="absolute inset-0 w-full h-full object-cover" 
-            autoPlay 
-            playsInline
-          />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="border-2 border-tva-primary w-3/4 h-3/4 rounded-lg flex items-center justify-center">
-              <div className="animate-pulse text-sm bg-black/50 px-3 py-2 rounded">
-                Placez votre profil dans le cadre
+          {isCameraLoading ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-black">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 border-4 border-tva-primary border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-white text-sm">Activation de la caméra...</p>
               </div>
             </div>
-          </div>
-          <div className="absolute bottom-8 left-0 right-0 flex justify-center">
-            <button onClick={capturePhoto} className="bg-white w-16 h-16 rounded-full border-4 border-tva-primary"></button>
-          </div>
-          <button 
-            onClick={() => setIsCameraFullscreen(false)} 
-            className="absolute top-4 left-4 bg-black/50 text-white p-2 rounded-full"
-          >
-            Annuler
-          </button>
+          ) : (
+            <>
+              <video 
+                ref={videoRef} 
+                className="absolute inset-0 w-full h-full object-cover" 
+                autoPlay 
+                playsInline
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="border-2 border-tva-primary w-3/4 h-3/4 rounded-lg flex items-center justify-center">
+                  <div className="animate-pulse text-sm bg-black/50 px-3 py-2 rounded">
+                    Placez votre profil dans le cadre
+                  </div>
+                </div>
+              </div>
+              <div className="absolute bottom-24 left-0 right-0 flex justify-center">
+                <button 
+                  onClick={capturePhoto} 
+                  className="bg-white w-16 h-16 rounded-full border-4 border-tva-primary"
+                  aria-label="Prendre une photo"
+                >
+                </button>
+              </div>
+              <div className="absolute bottom-8 left-0 right-0 flex justify-center space-x-6">
+                <button 
+                  onClick={() => {
+                    stopCameraStream();
+                    setIsCameraFullscreen(false);
+                  }} 
+                  className="bg-black/50 text-white p-3 rounded-full"
+                  aria-label="Annuler"
+                >
+                  <XCircle size={24} />
+                </button>
+                <button 
+                  onClick={switchCamera} 
+                  className="bg-black/50 text-white p-3 rounded-full"
+                  aria-label="Changer de caméra"
+                >
+                  <RotateCcw size={24} />
+                </button>
+              </div>
+            </>
+          )}
+          
+          {cameraError && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90">
+              <div className="text-white mb-4 text-center px-6">
+                <p className="font-semibold text-lg mb-2">Erreur de caméra</p>
+                <p className="text-sm text-white/70 mb-4">{cameraError}</p>
+                <Button 
+                  onClick={() => {
+                    setIsCameraFullscreen(false);
+                    setCameraError(null);
+                  }}
+                  variant="outline"
+                >
+                  Revenir à l'upload d'image
+                </Button>
+              </div>
+            </div>
+          )}
+          
           <canvas ref={canvasRef} className="hidden" />
         </div>
       </div>
@@ -245,7 +370,7 @@ export const AccountAnalyzer: React.FC = () => {
                 
                 <div className="grid grid-cols-2 gap-3 mt-4">
                   <button 
-                    onClick={startCamera}
+                    onClick={() => startCamera(false)}
                     className="flex flex-col items-center justify-center p-4 bg-tva-surface hover:bg-tva-surface/80 rounded-xl transition-all"
                   >
                     <div className="bg-tva-primary/20 p-3 rounded-full mb-3">
@@ -429,8 +554,6 @@ export const AccountAnalyzer: React.FC = () => {
           </TabsContent>
         </Tabs>
       )}
-      
-      {/* Removed duplicate upload section */}
       
       {step === 'analysis' && profile && analysis && (
         <div className="space-y-6 animate-slide-up">
