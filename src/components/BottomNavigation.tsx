@@ -18,7 +18,7 @@ export const BottomNavigation: React.FC = () => {
     if (path === '/' && location.pathname === '/') {
       return true;
     }
-    // Enhanced active route detection for better matching
+    // Check if current path starts with the navigation item path
     if (path !== '/' && location.pathname.startsWith(path)) {
       return true;
     }
@@ -26,8 +26,8 @@ export const BottomNavigation: React.FC = () => {
   };
   
   const handleNavigation = (path: string) => {
-    // Using replace: true prevents history stack buildup
     if (location.pathname !== path) {
+      // Using replace: true to prevent history buildup
       navigate(path, { replace: true });
     }
   };
@@ -50,7 +50,7 @@ export const BottomNavigation: React.FC = () => {
               <item.icon
                 size={24}
                 className={`mb-1 transition-transform ${
-                  isActive(item.path) ? 'animate-pulse-soft' : 'group-hover:scale-110'
+                  isActive(item.path) ? 'text-tva-primary' : ''
                 }`}
               />
               <span className="text-xs font-medium">{item.name}</span>

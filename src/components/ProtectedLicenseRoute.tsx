@@ -5,6 +5,7 @@ import { useLicense } from "@/contexts/LicenseContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { LicenseRequired } from "./LicenseRequired";
 import { toast } from "sonner";
+import { useCachedLicense } from "@/hooks/useCachedLicense";
 
 interface ProtectedLicenseRouteProps {
   children: React.ReactNode;
@@ -13,57 +14,72 @@ interface ProtectedLicenseRouteProps {
 export const ProtectedLicenseRoute: React.FC<ProtectedLicenseRouteProps> = ({ children }) => {
   const location = useLocation();
   const { isAuthenticated, isLoading } = useAuth();
-  const { hasLicense, isLoadingLicense, refreshLicenseStatus } = useLicense();
+  const { hasLicense, isLoadingLicense } = useLicense();
+  const { verifyLicense, cachedHasLicense } = useCachedLicense();
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const [licenseVerified, setLicenseVerified] = useState(false);
 
+  // Initial setup - only run once when component mounts
   useEffect(() => {
-    if (isAuthenticated && !isLoading) {
-      console.log(`Vérification de la licence pour l'accès à ${location.pathname}`);
+    let isMounted = true;
+    
+    const checkAccess = async () => {
+      if (!isAuthenticated || isLoading) return;
       
-      // Rafraîchir explicitement le statut de la licence lorsque le composant est monté
-      refreshLicenseStatus().catch(err => {
-        console.error("Erreur lors du rafraîchissement du statut de la licence:", err);
-        toast.error("Impossible de vérifier votre licence. Veuillez réessayer.");
-      });
-    }
-  }, [isAuthenticated, isLoading, refreshLicenseStatus, location.pathname]);
+      try {
+        // Only verify from server if we haven't verified yet since mounting
+        if (!licenseVerified) {
+          console.log("Vérification initiale de la licence");
+          await verifyLicense();
+          if (isMounted) setLicenseVerified(true);
+        }
+      } catch (err) {
+        console.error("Erreur lors de la vérification de la licence:", err);
+      } finally {
+        if (isMounted) setIsCheckingAccess(false);
+      }
+    };
+    
+    checkAccess();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated, isLoading, verifyLicense, licenseVerified]);
 
+  // When loading states change, update checking state
   useEffect(() => {
-    // Lorsque les vérifications d'authentification et de licence sont terminées, marquer la vérification d'accès comme terminée
     if (!isLoading && !isLoadingLicense) {
       setIsCheckingAccess(false);
-      
-      if (isAuthenticated && hasLicense) {
-        console.log(`Accès autorisé à ${location.pathname} - Licence valide`);
-      }
     }
-  }, [isLoading, isLoadingLicense, isAuthenticated, hasLicense, location.pathname]);
+  }, [isLoading, isLoadingLicense]);
 
-  // Vérifier si nous chargeons toujours le statut d'authentification ou de licence
-  if (isLoading || isLoadingLicense || isCheckingAccess) {
+  // Show loading state while checking access
+  if ((isLoading || isLoadingLicense || isCheckingAccess) && !licenseVerified) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="flex flex-col items-center gap-2">
           <div className="w-8 h-8 border-2 border-tva-primary border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm text-tva-text/70">Vérification de votre licence...</p>
+          <p className="text-sm text-tva-text/70">Vérification de votre accès...</p>
         </div>
       </div>
     );
   }
 
-  // Rediriger vers la page de connexion si non authentifié
+  // Redirect to login if not authenticated
   if (!isAuthenticated) {
     console.log(`Accès refusé à ${location.pathname} - Non authentifié`);
     toast.error("Veuillez vous connecter pour accéder à cette page");
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
-  // Afficher la page de licence requise si authentifié mais sans licence
-  if (!hasLicense) {
+  // Show license required page if no license
+  // Use cached value first for faster rendering
+  if (!cachedHasLicense && !hasLicense) {
     console.log(`Accès refusé à ${location.pathname} - Licence requise`);
     return <LicenseRequired />;
   }
 
-  // L'utilisateur est authentifié et a une licence, afficher le contenu protégé
+  // User is authenticated and has a license
   return <>{children}</>;
 };

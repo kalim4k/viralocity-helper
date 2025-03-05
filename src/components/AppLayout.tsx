@@ -25,8 +25,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       
       <Header />
       
-      <main className="flex-1 pb-20 px-4 pt-4 max-w-3xl mx-auto w-full relative z-10 animate-fade-in">
-        <div key={location.pathname} className="animate-slide-up">
+      <main className="flex-1 pb-20 px-4 pt-4 max-w-3xl mx-auto w-full relative z-10">
+        {/* Removed key={location.pathname} to prevent re-mounting */}
+        <div className="transition-opacity duration-300 ease-in-out">
           {children}
         </div>
       </main>
