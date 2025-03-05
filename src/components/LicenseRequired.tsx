@@ -15,7 +15,10 @@ export const LicenseRequired: React.FC = () => {
   const { activateLicense } = useLicense();
 
   const handleActivate = async () => {
-    if (!licenseKey.trim()) return;
+    if (!licenseKey.trim()) {
+      setActivationError("Veuillez entrer une clé de licence");
+      return;
+    }
     
     setIsActivating(true);
     setActivationError(null);

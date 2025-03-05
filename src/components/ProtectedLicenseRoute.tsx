@@ -12,8 +12,17 @@ interface ProtectedLicenseRouteProps {
 
 export const ProtectedLicenseRoute: React.FC<ProtectedLicenseRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
-  const { hasLicense, isLoadingLicense } = useLicense();
+  const { hasLicense, isLoadingLicense, refreshLicenseStatus } = useLicense();
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      // Explicitly refresh license status when route is mounted
+      refreshLicenseStatus().catch(err => {
+        console.error("Error refreshing license status:", err);
+      });
+    }
+  }, [isAuthenticated, isLoading]);
 
   useEffect(() => {
     // When auth and license checks are complete, mark access checking as done
