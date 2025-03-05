@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatUsername, formatError } from '@/utils/formatters';
 import { fetchTikTokProfile } from '@/services/tiktokService';
+import { TikTokProfile } from '@/types/tiktok.types';
 
 // Create a TikTok icon component
 const TiktokIcon = () => (
@@ -25,26 +26,6 @@ const TiktokIcon = () => (
     <path d="M15 8v8a4 4 0 0 1-4 4" />
   </svg>
 );
-
-export interface TikTokProfile {
-  username: string;
-  displayName: string;
-  nickname?: string;
-  avatar: string;
-  avatarUrl?: string;
-  followers: number;
-  following?: number;
-  likes: number;
-  bio?: string;
-  verified?: boolean;
-  videoCount?: number;
-  videos: Array<{
-    id: string;
-    thumbnail: string;
-    views: number;
-    title: string;
-  }>;
-}
 
 interface TikTokConnectModalProps {
   isOpen: boolean;

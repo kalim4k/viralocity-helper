@@ -77,8 +77,8 @@ export interface TikTokProfileAnalysis {
 export interface TikTokProfile {
   id: string;
   uniqueId: string;
-  username?: string;
-  displayName?: string;
+  username: string; // Changed from optional to required
+  displayName: string; // Changed from optional to required
   nickname?: string;
   avatar: string;
   avatarUrl?: string;
@@ -104,10 +104,10 @@ export interface TikTokProfile {
 export interface TikTokVideo {
   id: string;
   description?: string;
-  title?: string;
+  title: string; // Changed from optional to required
   createTime?: number;
   coverUrl?: string;
-  thumbnail?: string;
+  thumbnail: string; // Was already required
   videoUrl?: string;
   shareUrl?: string;
   views: number;

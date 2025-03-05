@@ -1,67 +1,49 @@
 
-import { TikTokProfile } from '@/types/tiktok.types';
-import { fetchUserData } from './api/tiktokApiClient';
+import { toast } from 'sonner';
+import { RapidAPIResponse } from '@/types/tiktok.types';
 import { mapTikTokProfileData } from './mappers/tiktokMapper';
 
+// API configuration
+const API_KEY = 'bd18f4b949msh6edd4e1d444b6a0p18d393jsnf0169527896e';
+const API_HOST = 'tiktok-scraper-api-zt7j.p.rapidapi.com';
+
 /**
- * Fetch TikTok user profile information using RapidAPI
- * @param username TikTok username (with or without @)
- * @returns Promise with TikTok profile information
+ * Fetches a TikTok profile by username
+ * @param username TikTok username
+ * @returns Promise with the TikTok profile data
  */
-export async function fetchTikTokProfile(username: string): Promise<TikTokProfile> {
-  // Clean username (remove @ if present)
-  const cleanUsername = username.replace('@', '');
-  console.log(`Service: Fetching profile for username: ${cleanUsername}`);
+export const fetchTikTokProfile = async (username) => {
+  console.log(`Fetching TikTok profile for username: ${username}`);
   
   try {
-    // Fetch raw data from the API
-    const result = await fetchUserData(cleanUsername);
-    console.log('Service: API response received, mapping to profile...');
+    const url = `https://${API_HOST}/user/get?username=${username}`;
     
-    // Extract author stats if available
-    if (result.data.itemList && Array.isArray(result.data.itemList) && result.data.itemList.length > 0) {
-      const firstItem = result.data.itemList[0];
-      
-      // Type guard to check if firstItem is a valid object with the expected properties
-      if (firstItem && typeof firstItem === 'object' && firstItem !== null) {
-        const item = firstItem as Record<string, unknown>;
-        
-        if ('author' in item && 'authorStats' in item) {
-          console.log('Found authorStats in first video:', item.authorStats);
-          
-          // If user_info doesn't have heart/likes info, try to get it from authorStats
-          if (result.data.owner && result.data.owner.user_info && 
-              !('heart' in result.data.owner.user_info) && 
-              !('heartCount' in result.data.owner.user_info) && 
-              !('total_favorited' in result.data.owner.user_info)) {
-            
-            // Add likes/hearts from authorStats if it's a valid object
-            if (item.authorStats && typeof item.authorStats === 'object' && item.authorStats !== null) {
-              const authorStats = item.authorStats as Record<string, unknown>;
-              
-              if ('heart' in authorStats && typeof authorStats.heart === 'number') {
-                result.data.owner.user_info.heart = authorStats.heart;
-              } else if ('heartCount' in authorStats && typeof authorStats.heartCount === 'number') {
-                result.data.owner.user_info.heartCount = authorStats.heartCount;
-              }
-            }
-            
-            console.log('Added heart count to user_info from authorStats');
-          }
-        }
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'X-RapidAPI-Key': API_KEY,
+        'X-RapidAPI-Host': API_HOST
       }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API error (${response.status}): ${errorText}`);
+      throw new Error(`Erreur API (${response.status}): ${errorText}`);
     }
     
-    // Map the response to our application model
-    const profile = mapTikTokProfileData(result);
-    console.log('Service: Profile successfully mapped:', profile);
+    const data: RapidAPIResponse = await response.json();
     
-    return profile as TikTokProfile;
+    if (data.status !== 0) {
+      console.error('API returned error status:', data);
+      throw new Error(`Erreur: ${JSON.stringify(data)}`);
+    }
+    
+    // Map the API response to our TikTokProfile structure
+    return mapTikTokProfileData(data);
   } catch (error) {
-    console.error('Error in TikTok service:', error);
-    if (error instanceof Error) {
-      console.error('Error message:', error.message);
-    }
-    throw new Error(`Erreur lors de la récupération du profil TikTok: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    console.error('Error fetching TikTok profile:', error);
+    toast.error(`Erreur lors de la récupération du profil: ${error.message}`);
+    throw error;
   }
-}
+};

@@ -1,21 +1,10 @@
 
+// Import necessary types
+import { CountryInfo } from '../components/CountrySelector';
+
 /**
- * Types pour l'API de tendances TikTok
+ * Response structure for trending videos
  */
-
-// Vidéo en tendance
-export interface TrendingVideo {
-  country_code: string;
-  cover: string;
-  duration: number;
-  id: string;
-  item_id: string;
-  item_url: string;
-  region: string;
-  title: string;
-}
-
-// Réponse API pour les vidéos en tendance
 export interface TikTokTrendingVideosResponse {
   code: number;
   msg: string;
@@ -28,72 +17,24 @@ export interface TikTokTrendingVideosResponse {
       total_count: number;
     };
     videos: TrendingVideo[];
-  }
+  };
 }
 
-// Vidéo d'un créateur
-export interface CreatorVideo {
-  item_id: string;
-  cover_url: string;
-  tt_link: string;
-  vv: number; // views
-  liked_cnt: number;
-  create_time: number;
-}
-
-// Créateur en tendance
-export interface TrendingCreator {
-  tcm_id: string;
-  user_id: string;
-  nick_name: string;
-  avatar_url: string;
-  country_code: string;
-  follower_cnt: number;
-  liked_cnt: number;
-  tt_link: string;
-  tcm_link: string;
-  items: CreatorVideo[];
-}
-
-// Réponse API pour les créateurs en tendance
+/**
+ * Response structure for trending creators
+ */
 export interface TikTokTrendingCreatorsResponse {
   code: number;
   msg: string;
   request_id: string;
   data: {
     creators: TrendingCreator[];
-  }
+  };
 }
 
-// Point de données pour un graphique de tendance
-export interface TrendPoint {
-  time: number;
-  value: number;
-}
-
-// Élément associé pour les sons et hashtags
-export interface RelatedItem {
-  item_id: number | string;
-  cover_uri: string;
-}
-
-// Son en tendance
-export interface TrendingSong {
-  author: string;
-  clip_id: string;
-  country_code: string;
-  cover: string;
-  duration: number;
-  link: string;
-  rank: number;
-  song_id: string;
-  title: string;
-  trend: TrendPoint[];
-  url_title: string;
-  related_items: RelatedItem[] | null;
-}
-
-// Réponse API pour les sons en tendance
+/**
+ * Response structure for trending songs
+ */
 export interface TikTokTrendingSongsResponse {
   code: number;
   msg: string;
@@ -106,16 +47,91 @@ export interface TikTokTrendingSongsResponse {
       has_more: boolean;
     };
     sound_list: TrendingSong[];
-  }
+  };
 }
 
-// Créateur associé à un hashtag
-export interface HashtagCreator {
+/**
+ * Response structure for trending hashtags
+ */
+export interface TikTokTrendingHashtagsResponse {
+  code: number;
+  msg: string;
+  request_id: string;
+  data: {
+    list: TrendingHashtag[];
+  };
+}
+
+/**
+ * Trending video structure
+ */
+export interface TrendingVideo {
+  country_code: string;
+  cover: string;
+  duration: number;
+  id: string;
+  item_id: string;
+  item_url: string;
+  region: string;
+  title: string;
+}
+
+/**
+ * Trending creator structure
+ */
+export interface TrendingCreator {
+  tcm_id: string;
+  user_id: string;
   nick_name: string;
   avatar_url: string;
+  country_code: string;
+  follower_cnt: number;
+  liked_cnt: number;
+  tt_link: string;
+  tcm_link: string;
+  items: Array<{
+    item_id: string;
+    cover_url: string;
+    tt_link: string;
+    vv: number;
+    liked_cnt: number;
+    create_time: number;
+  }>;
 }
 
-// Hashtag en tendance
+/**
+ * Trending song structure
+ */
+export interface TrendingSong {
+  author: string;
+  clip_id: string;
+  country_code: string;
+  cover: string;
+  duration: number;
+  if_cml: boolean;
+  is_search: boolean;
+  link: string;
+  on_list_times: number | null;
+  promoted: boolean;
+  rank: number;
+  rank_diff: number | null;
+  rank_diff_type: number;
+  related_items: Array<{
+    item_id: number;
+    cover_uri: string;
+  }> | null;
+  song_id: string;
+  title: string;
+  trend: Array<{
+    time: number;
+    value: number;
+  }>;
+  url_title: string;
+}
+
+/**
+ * Trending hashtag structure
+ */
 export interface TrendingHashtag {
   hashtag_id: string;
   hashtag_name: string;
@@ -130,8 +146,14 @@ export interface TrendingHashtag {
     label: string;
   };
   is_promoted: boolean;
-  trend: TrendPoint[];
-  creators: HashtagCreator[];
+  trend: Array<{
+    time: number;
+    value: number;
+  }>;
+  creators: Array<{
+    nick_name: string;
+    avatar_url: string;
+  }>;
   publish_cnt: number;
   video_views: number;
   rank: number;
@@ -139,14 +161,26 @@ export interface TrendingHashtag {
   rank_diff_type: number;
 }
 
-// Réponse API pour les hashtags en tendance
-export interface TikTokTrendingHashtagsResponse {
-  code: number;
-  msg: string;
-  request_id: string;
-  data: {
-    list: TrendingHashtag[];
-  }
+/**
+ * Trend data point structure
+ */
+export interface TrendDataPoint {
+  time: number;
+  value: number;
 }
 
-// Removing the conflicting export declaration that was causing issues
+/**
+ * TikTok trends interface for combined trends display
+ */
+export interface TikTokTrends {
+  videos: TrendingVideo[];
+  creators: TrendingCreator[];
+  songs: TrendingSong[];
+  hashtags: TrendingHashtag[];
+  selectedCountry: CountryInfo;
+  isLoading: boolean;
+  error: string | null;
+}
+
+// Using export type to avoid conflicts with TS isolatedModules
+export type { TrendingVideo, TrendingCreator, TrendingSong, TrendingHashtag };
