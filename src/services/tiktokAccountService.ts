@@ -207,3 +207,49 @@ export const getDefaultTikTokAccount = async () => {
     throw error;
   }
 };
+
+/**
+ * Déconnecte un compte TikTok
+ */
+export const disconnectTikTokAccount = async (tiktokId: string) => {
+  try {
+    const { data: currentUser } = await supabase.auth.getUser();
+    
+    if (!currentUser || !currentUser.user) {
+      throw new Error("Utilisateur non authentifié");
+    }
+    
+    // Récupérer l'ID du compte à déconnecter
+    const { data: accountToDisconnect } = await supabase
+      .from('tiktok_accounts')
+      .select('id')
+      .eq('user_id', currentUser.user.id)
+      .eq('tiktok_id', tiktokId)
+      .maybeSingle();
+    
+    if (!accountToDisconnect) {
+      throw new Error("Compte TikTok non trouvé");
+    }
+    
+    // Supprimer d'abord les vidéos associées
+    const { error: videosError } = await supabase
+      .from('tiktok_videos')
+      .delete()
+      .eq('tiktok_account_id', accountToDisconnect.id);
+    
+    if (videosError) throw videosError;
+    
+    // Supprimer ensuite le compte
+    const { error: accountError } = await supabase
+      .from('tiktok_accounts')
+      .delete()
+      .eq('id', accountToDisconnect.id);
+    
+    if (accountError) throw accountError;
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Erreur lors de la déconnexion du compte TikTok:', error);
+    throw error;
+  }
+};

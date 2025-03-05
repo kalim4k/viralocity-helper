@@ -13,6 +13,7 @@ import RevenuePage from "./pages/Revenue";
 import AnalysePage from "./pages/Analyse";
 import TelechargementPage from "./pages/Telechargement";
 import TendancePage from "./pages/Tendance";
+import ProfilePage from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -71,6 +72,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <TendancePage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
                 </ProtectedRoute>
               } 
             />

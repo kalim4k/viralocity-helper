@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
@@ -6,11 +5,10 @@ import { Flame } from 'lucide-react';
 import { TikTokConnectModal, TikTokProfile } from '../components/TikTokConnectModal';
 import { TikTokProfileCard } from '../components/TikTokProfileCard';
 import { TikTokVideoGrid } from '../components/TikTokVideoGrid';
-import { saveTikTokAccount, getDefaultTikTokAccount } from '@/services/tiktokAccountService';
+import { saveTikTokAccount, getDefaultTikTokAccount, disconnectTikTokAccount } from '@/services/tiktokAccountService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
-// Create a TikTok icon component
 const TiktokIcon = () => (
   <svg 
     width="24" 
@@ -36,7 +34,6 @@ const Index = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Charger le compte TikTok de l'utilisateur au chargement du composant
   useEffect(() => {
     if (isAuthenticated) {
       loadDefaultAccount();
@@ -78,7 +75,6 @@ const Index = () => {
     setIsConnected(true);
     setProfile(profileData);
     
-    // Sauvegarder le compte TikTok dans la base de données
     if (isAuthenticated) {
       try {
         await saveTikTokAccount(profileData);
@@ -87,6 +83,19 @@ const Index = () => {
         console.error('Erreur lors de la sauvegarde du compte TikTok:', error);
         toast.error('Erreur lors de la sauvegarde du compte TikTok');
       }
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!isAuthenticated || !profile) return;
+
+    try {
+      await disconnectTikTokAccount(profile.id);
+      setIsConnected(false);
+      setProfile(null);
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion du compte TikTok:', error);
+      toast.error('Erreur lors de la déconnexion du compte TikTok');
     }
   };
   
@@ -133,7 +142,10 @@ const Index = () => {
           <section className="space-y-6">
             {profile && (
               <>
-                <TikTokProfileCard profile={profile} />
+                <TikTokProfileCard 
+                  profile={profile} 
+                  onDisconnect={handleDisconnect}
+                />
                 <TikTokVideoGrid videos={profile.videos} maxVideos={3} />
                 
                 <button 
