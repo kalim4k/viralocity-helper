@@ -1,10 +1,6 @@
 
 import { toast } from "sonner";
 import {
-  TikTokTrendingVideosResponse,
-  TikTokTrendingCreatorsResponse,
-  TikTokTrendingSongsResponse,
-  TikTokTrendingHashtagsResponse,
   TrendingVideo,
   TrendingCreator,
   TrendingSong,
@@ -15,30 +11,30 @@ import {
  * Configuration for the TikTok Trends API client
  */
 const apiConfig = {
-  apiKey: "7a0b675b39mshd26944ac6b0aa53p1af42bjsna1c8d9c8a89b", // Demo API key - replace with your own in production
-  apiHost: "tiktok-trending.p.rapidapi.com",
-  baseUrl: "https://tiktok-trending.p.rapidapi.com"
+  apiKey: "bd18f4b949msh6edd4e1d444b6a0p18d393jsnf0169527896e", // API key from RapidAPI
+  apiHost: "tiktok-creative-center-api.p.rapidapi.com",
+  baseUrl: "https://tiktok-creative-center-api.p.rapidapi.com"
 };
 
 /**
  * Headers configuration for the API requests
  */
 const headers = {
-  'X-RapidAPI-Key': apiConfig.apiKey,
-  'X-RapidAPI-Host': apiConfig.apiHost,
+  'x-rapidapi-key': apiConfig.apiKey,
+  'x-rapidapi-host': apiConfig.apiHost,
   'Content-Type': 'application/json'
 };
 
 /**
- * Fetches trending videos from the TikTok API
+ * Fetches trending videos from the TikTok Creative Center API
  * @param region Region code (e.g., 'US', 'FR')
- * @returns API response with trending videos data
+ * @returns Array of trending videos
  */
-export const fetchTrendingVideos = async (region: string = "FR"): Promise<TrendingVideo[]> => {
+export const fetchTrendingVideos = async (region: string = "US"): Promise<TrendingVideo[]> => {
   try {
-    console.log(`Fetching real trending videos for region: ${region}`);
+    console.log(`Fetching trending videos for region: ${region}`);
     
-    const response = await fetch(`${apiConfig.baseUrl}/feed/trending?region=${region}`, {
+    const response = await fetch(`${apiConfig.baseUrl}/api/trending/video?page=1&limit=20&period=30&order_by=vv&country=${region}`, {
       method: 'GET',
       headers
     });
@@ -48,35 +44,33 @@ export const fetchTrendingVideos = async (region: string = "FR"): Promise<Trendi
     }
     
     const data = await response.json();
-    console.log('Real trending videos API response:', data);
+    console.log('Trending videos API response:', data);
     
-    // In case the real API returns data in a different format than expected
-    // Transform the data to match our TrendingVideo type
-    if (data && Array.isArray(data)) {
-      return data.map((item: any) => ({
-        id: item.id || item.item_id || `video-${Math.random().toString(36).substr(2, 9)}`,
-        title: item.title || item.description || item.desc || '',
-        description: item.description || item.desc || '',
-        coverUrl: item.cover_url || item.cover || item.coverUrl || '',
-        playUrl: item.play_url || item.playUrl || item.video_url || '',
-        cover: item.cover || item.cover_url || item.coverUrl || '',
-        item_url: item.item_url || item.itemUrl || item.share_url || '',
-        region: region,
-        duration: item.duration || 15,
-        likeCount: item.like_count || item.digg_count || item.stats?.diggCount || 0,
-        commentCount: item.comment_count || item.stats?.commentCount || 0,
-        shareCount: item.share_count || item.stats?.shareCount || 0,
-        viewCount: item.view_count || item.play_count || item.stats?.playCount || 0,
-        createTime: item.create_time || new Date().toISOString(),
+    if (data && data.code === 0 && data.data && Array.isArray(data.data.videos)) {
+      return data.data.videos.map((video: any) => ({
+        id: video.id || video.item_id || `video-${Math.random().toString(36).substr(2, 9)}`,
+        title: video.title || '',
+        description: video.title || '', // Using title as description since API doesn't provide separate description
+        coverUrl: video.cover || '',
+        playUrl: video.item_url || '',
+        cover: video.cover || '',
+        item_url: video.item_url || '',
+        region: video.region || region,
+        duration: video.duration || 0,
+        likeCount: 0, // Not provided by the API
+        commentCount: 0, // Not provided by the API
+        shareCount: 0, // Not provided by the API
+        viewCount: 0, // Not provided by the API
+        createTime: new Date().toISOString(),
         author: {
-          username: item.author?.uniqueId || item.author?.username || '',
-          nickname: item.author?.nickname || '',
-          avatarUrl: item.author?.avatarThumb || item.author?.avatarUrl || ''
+          username: '', // Not provided by the API
+          nickname: '', // Not provided by the API
+          avatarUrl: '' // Not provided by the API
         }
       }));
     }
     
-    // If real API call fails, fallback to mock data with an error toast
+    // If API response format is unexpected, fall back to mock data
     console.warn('API response not in expected format, falling back to mock data');
     toast.error("Format de données inattendu, utilisation de données de démonstration");
     return generateMockVideos(region);
@@ -91,15 +85,15 @@ export const fetchTrendingVideos = async (region: string = "FR"): Promise<Trendi
 };
 
 /**
- * Fetches trending creators from the TikTok API
+ * Fetches trending creators from the TikTok Creative Center API
  * @param region Region code (e.g., 'US', 'FR')
- * @returns API response with trending creators data
+ * @returns Array of trending creators
  */
-export const fetchTrendingCreators = async (region: string = "FR"): Promise<TrendingCreator[]> => {
+export const fetchTrendingCreators = async (region: string = "US"): Promise<TrendingCreator[]> => {
   try {
-    console.log(`Fetching real trending creators for region: ${region}`);
+    console.log(`Fetching trending creators for region: ${region}`);
     
-    const response = await fetch(`${apiConfig.baseUrl}/user/trending?region=${region}`, {
+    const response = await fetch(`${apiConfig.baseUrl}/api/trending/creator?page=1&limit=20&sort_by=follower&country=${region}`, {
       method: 'GET',
       headers
     });
@@ -109,25 +103,30 @@ export const fetchTrendingCreators = async (region: string = "FR"): Promise<Tren
     }
     
     const data = await response.json();
-    console.log('Real trending creators API response:', data);
+    console.log('Trending creators API response:', data);
     
-    // Transform the data to match our TrendingCreator type
-    if (data && Array.isArray(data)) {
-      return data.map((creator: any) => ({
-        username: creator.unique_id || creator.uniqueId || creator.username || '',
-        nickname: creator.nickname || creator.nick_name || '',
-        avatarUrl: creator.avatar_thumb || creator.avatar_url || creator.avatarUrl || '',
-        avatar_url: creator.avatar_thumb || creator.avatar_url || creator.avatarUrl || '',
-        nick_name: creator.nickname || creator.nick_name || '',
-        tt_link: creator.tt_link || creator.share_url || `https://www.tiktok.com/@${creator.unique_id || creator.uniqueId || creator.username}`,
-        followerCount: creator.follower_count || creator.followers || creator.followerCount || 0,
-        follower_cnt: creator.follower_count || creator.followers || creator.followerCount || 0,
-        followingCount: creator.following_count || creator.following || creator.followingCount || 0,
-        likeCount: creator.like_count || creator.likes || creator.heart_count || 0,
-        bio: creator.signature || creator.bio || '',
-        verified: creator.verified || false,
-        user_id: creator.user_id || creator.id || '',
-        items: creator.items || creator.videos || []
+    if (data && data.code === 0 && data.data && Array.isArray(data.data.creators)) {
+      return data.data.creators.map((creator: any) => ({
+        username: creator.nick_name || '',
+        nickname: creator.nick_name || '',
+        avatarUrl: creator.avatar_url || '',
+        avatar_url: creator.avatar_url || '',
+        nick_name: creator.nick_name || '',
+        tt_link: creator.tt_link || '',
+        followerCount: creator.follower_cnt || 0,
+        follower_cnt: creator.follower_cnt || 0,
+        followingCount: 0, // Not provided by API
+        likeCount: creator.liked_cnt || 0,
+        bio: '', // Not provided by API
+        verified: false, // Not provided by API
+        user_id: creator.user_id || creator.tcm_id || '',
+        items: Array.isArray(creator.items) 
+          ? creator.items.map((item: any) => ({
+              item_id: item.item_id || '',
+              cover_url: item.cover_url || '',
+              vv: item.vv || 0
+            })) 
+          : []
       }));
     }
     
@@ -146,46 +145,16 @@ export const fetchTrendingCreators = async (region: string = "FR"): Promise<Tren
 };
 
 /**
- * Fetches trending songs from the TikTok API
+ * Fetches trending songs (still using mock data as not available in the new API)
  * @param region Region code (e.g., 'US', 'FR')
- * @returns API response with trending songs data
+ * @returns Array of trending songs
  */
-export const fetchTrendingSongs = async (region: string = "FR"): Promise<TrendingSong[]> => {
+export const fetchTrendingSongs = async (region: string = "US"): Promise<TrendingSong[]> => {
   try {
-    console.log(`Fetching real trending songs for region: ${region}`);
-    
-    const response = await fetch(`${apiConfig.baseUrl}/music/trending?region=${region}`, {
-      method: 'GET',
-      headers
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log('Real trending songs API response:', data);
-    
-    // Transform data to match our TrendingSong type
-    if (data && Array.isArray(data)) {
-      return data.map((song: any, index: number) => ({
-        id: song.id || song.music_id || `song-${Math.random().toString(36).substr(2, 9)}`,
-        title: song.title || song.music_title || '',
-        coverUrl: song.cover_url || song.cover_large || song.coverUrl || '',
-        playUrl: song.play_url || song.music_url || song.playUrl || '',
-        cover: song.cover || song.cover_url || song.coverUrl || '',
-        link: song.link || song.share_url || '',
-        clip_id: song.clip_id || song.id || '',
-        artist: song.artist || song.author || '',
-        author: song.author || song.artist || '',
-        rank: index + 1,
-        usageCount: song.usage_count || song.video_count || 0
-      }));
-    }
-    
-    // Fallback to mock data
-    console.warn('API response not in expected format, falling back to mock data');
-    toast.error("Format de données inattendu, utilisation de données de démonstration");
+    console.log(`Fetching trending songs for region: ${region}`);
+    // Since the new API doesn't provide trending songs, we'll use mock data
+    console.warn('API for trending songs not available, using mock data');
+    toast.info("API pour les sons tendance non disponible, utilisation de données de démonstration");
     return generateMockSongs(region);
     
   } catch (error) {
@@ -198,45 +167,16 @@ export const fetchTrendingSongs = async (region: string = "FR"): Promise<Trendin
 };
 
 /**
- * Fetches trending hashtags from the TikTok API
+ * Fetches trending hashtags (still using mock data as not available in the new API)
  * @param region Region code (e.g., 'US', 'FR')
- * @returns API response with trending hashtags data
+ * @returns Array of trending hashtags
  */
-export const fetchTrendingHashtags = async (region: string = "FR"): Promise<TrendingHashtag[]> => {
+export const fetchTrendingHashtags = async (region: string = "US"): Promise<TrendingHashtag[]> => {
   try {
-    console.log(`Fetching real trending hashtags for region: ${region}`);
-    
-    const response = await fetch(`${apiConfig.baseUrl}/hashtag/trending?region=${region}`, {
-      method: 'GET',
-      headers
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log('Real trending hashtags API response:', data);
-    
-    // Transform data to match our TrendingHashtag type
-    if (data && Array.isArray(data)) {
-      return data.map((hashtag: any, index: number) => ({
-        id: hashtag.id || hashtag.cid || `hashtag-${Math.random().toString(36).substr(2, 9)}`,
-        name: hashtag.name || hashtag.title || hashtag.hashtag_name || '',
-        hashtag_name: hashtag.hashtag_name || hashtag.name || hashtag.title || '',
-        hashtag_id: hashtag.hashtag_id || hashtag.id || hashtag.cid || '',
-        rank: index + 1,
-        videoCount: hashtag.video_count || hashtag.publish_cnt || 0,
-        publish_cnt: hashtag.publish_cnt || hashtag.video_count || 0,
-        video_views: hashtag.video_views || hashtag.view_count || 0,
-        viewCount: hashtag.view_count || hashtag.video_views || 0,
-        creators: hashtag.creators || []
-      }));
-    }
-    
-    // Fallback to mock data
-    console.warn('API response not in expected format, falling back to mock data');
-    toast.error("Format de données inattendu, utilisation de données de démonstration");
+    console.log(`Fetching trending hashtags for region: ${region}`);
+    // Since the new API doesn't provide trending hashtags, we'll use mock data
+    console.warn('API for trending hashtags not available, using mock data');
+    toast.info("API pour les hashtags tendance non disponible, utilisation de données de démonstration");
     return generateMockHashtags(region);
     
   } catch (error) {
