@@ -10,20 +10,22 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
-import { Key, Copy, Download, Plus, AlertCircle } from 'lucide-react';
+import { Key, Copy, Download, Plus, AlertCircle, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { addMonths } from 'date-fns';
 
 export const GenerateLicenseKeys: React.FC = () => {
   const { user } = useAuth();
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(100); // Default to 100 as requested
   const [price, setPrice] = useState<number | ''>('');
   const [generatedKeys, setGeneratedKeys] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
+  const [validityMonths, setValidityMonths] = useState(1); // Default to 1 month
 
   // Check if user is admin
   useEffect(() => {
@@ -135,6 +137,9 @@ export const GenerateLicenseKeys: React.FC = () => {
     const keys: string[] = [];
 
     try {
+      // Calculate expiration date (1 month from now)
+      const expiresAt = addMonths(new Date(), validityMonths).toISOString();
+      
       // Generate unique keys
       for (let i = 0; i < quantity; i++) {
         try {
@@ -151,12 +156,13 @@ export const GenerateLicenseKeys: React.FC = () => {
         throw new Error('Could not generate any unique keys');
       }
 
-      // Prepare license data for insertion
+      // Prepare license data for insertion with expiration date
       const keysToInsert = keys.map(licenseKey => ({
         license_key: licenseKey,
         price: price || null,
         status: 'inactive',
-        admin_id: user.id
+        admin_id: user.id,
+        expires_at: expiresAt // Set expiration date to 1 month from now
       }));
 
       // Insert keys into database
@@ -266,6 +272,23 @@ export const GenerateLicenseKeys: React.FC = () => {
               placeholder="Prix (optionnel)"
             />
           </div>
+        </div>
+        
+        <div className="space-y-2">
+          <label htmlFor="validity" className="text-sm font-medium flex items-center gap-1">
+            <Calendar className="h-4 w-4" />
+            Durée de validité (mois)
+          </label>
+          <Input
+            id="validity"
+            type="number"
+            min="1"
+            value={validityMonths}
+            onChange={(e) => setValidityMonths(parseInt(e.target.value) || 1)}
+          />
+          <p className="text-xs text-tva-text/60">
+            Les clés expireront {validityMonths} mois après activation
+          </p>
         </div>
 
         {generatedKeys.length > 0 && (
