@@ -1,1 +1,5 @@
+
 project_id = "trvivjdizuimjvjxqcuu"
+
+[functions.tiktok-profile]
+verify_jwt = false

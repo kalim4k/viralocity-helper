@@ -51,8 +51,21 @@ export interface TikTokVideo {
 
 export interface RapidAPIResponse {
   status: number;
-  statusText?: string;
   data?: {
+    owner?: {
+      user_info?: {
+        uid: string;
+        nickname: string;
+        signature?: string;
+        avatar_thumb?: {
+          url_list?: string[];
+        };
+        follower_count?: number;
+        following_count?: number;
+        unique_id: string;
+        verified?: boolean;
+      }
+    };
     cursor?: string;
     hasMore?: boolean;
     itemList?: Array<{
