@@ -35,9 +35,11 @@ serve(async (req) => {
 
     // Remove @ from username if present
     const cleanUsername = username.startsWith('@') ? username.substring(1) : username;
-    const url = `https://${API_HOST}/getuser/${cleanUsername}`;
     
-    const response = await fetch(url, {
+    // First, fetch user profile
+    const profileUrl = `https://${API_HOST}/getuser/${cleanUsername}`;
+    
+    const profileResponse = await fetch(profileUrl, {
       method: 'GET',
       headers: {
         'X-RapidAPI-Key': API_KEY,
@@ -45,24 +47,24 @@ serve(async (req) => {
       }
     });
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API error (${response.status}): ${errorText}`);
+    if (!profileResponse.ok) {
+      const errorText = await profileResponse.text();
+      console.error(`API error (${profileResponse.status}): ${errorText}`);
       return new Response(
-        JSON.stringify({ error: `API error (${response.status}): ${errorText}` }),
+        JSON.stringify({ error: `API error (${profileResponse.status}): ${errorText}` }),
         { 
-          status: response.status, 
+          status: profileResponse.status, 
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         }
       );
     }
     
-    const data = await response.json();
+    const profileData = await profileResponse.json();
     
-    if (data.status !== 200) {
-      console.error('API returned error status:', data);
+    if (profileData.status !== 200) {
+      console.error('API returned error status:', profileData);
       return new Response(
-        JSON.stringify({ error: `Error: ${JSON.stringify(data)}` }),
+        JSON.stringify({ error: `Error: ${JSON.stringify(profileData)}` }),
         { 
           status: 400, 
           headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -70,9 +72,46 @@ serve(async (req) => {
       );
     }
     
-    // Return the raw API response, we'll map it in the frontend
+    // Now, fetch user videos
+    const videosUrl = `https://${API_HOST}/user/videos/${cleanUsername}`;
+    
+    let videosData = null;
+    
+    try {
+      const videosResponse = await fetch(videosUrl, {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Key': API_KEY,
+          'X-RapidAPI-Host': API_HOST
+        }
+      });
+      
+      if (videosResponse.ok) {
+        videosData = await videosResponse.json();
+        
+        if (videosData.status !== 200) {
+          console.warn('Videos API returned error status:', videosData);
+          videosData = null;
+        }
+      } else {
+        console.warn(`Videos API error (${videosResponse.status})`);
+      }
+    } catch (videosError) {
+      console.warn('Error fetching videos:', videosError);
+    }
+    
+    // Merge profile and videos data
+    const mergedData = {
+      ...profileData,
+      data: {
+        ...profileData.data,
+        itemList: videosData?.data?.items || []
+      }
+    };
+    
+    // Return the merged API response
     return new Response(
-      JSON.stringify(data),
+      JSON.stringify(mergedData),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
     

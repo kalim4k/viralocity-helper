@@ -31,15 +31,18 @@ export const fetchTikTokProfile = async (username: string) => {
         throw new Error('No data returned from edge function');
       }
       
+      console.log('Data received from edge function:', data);
+      
       // Map the API response to our TikTokProfile structure
       return mapTikTokProfileData(data as RapidAPIResponse);
     } catch (edgeFunctionError) {
       console.error('Edge function failed, falling back to direct API call:', edgeFunctionError);
       
-      // Fallback to direct API call (using the original implementation)
-      const url = `https://tiktok-user.p.rapidapi.com/getuser/${cleanUsername}`;
+      // Fallback to direct API calls (separate calls for profile and videos)
+      const profileUrl = `https://tiktok-user.p.rapidapi.com/getuser/${cleanUsername}`;
+      const videosUrl = `https://tiktok-user.p.rapidapi.com/user/videos/${cleanUsername}`;
       
-      const response = await fetch(url, {
+      const profileResponse = await fetch(profileUrl, {
         method: 'GET',
         headers: {
           'X-RapidAPI-Key': 'bd18f4b949msh6edd4e1d444b6a0p18d393jsnf0169527896e',
@@ -47,21 +50,47 @@ export const fetchTikTokProfile = async (username: string) => {
         }
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`API error (${response.status}): ${errorText}`);
-        throw new Error(`Erreur API (${response.status}): ${errorText}`);
+      if (!profileResponse.ok) {
+        const errorText = await profileResponse.text();
+        console.error(`API error (${profileResponse.status}): ${errorText}`);
+        throw new Error(`Erreur API (${profileResponse.status}): ${errorText}`);
       }
       
-      const data: RapidAPIResponse = await response.json();
+      const profileData: RapidAPIResponse = await profileResponse.json();
       
-      if (data.status !== 200) {
-        console.error('API returned error status:', data);
-        throw new Error(`Erreur: ${JSON.stringify(data)}`);
+      if (profileData.status !== 200) {
+        console.error('API returned error status:', profileData);
+        throw new Error(`Erreur: ${JSON.stringify(profileData)}`);
+      }
+      
+      // Try to get videos separately
+      try {
+        const videosResponse = await fetch(videosUrl, {
+          method: 'GET',
+          headers: {
+            'X-RapidAPI-Key': 'bd18f4b949msh6edd4e1d444b6a0p18d393jsnf0169527896e',
+            'X-RapidAPI-Host': 'tiktok-user.p.rapidapi.com'
+          }
+        });
+        
+        if (videosResponse.ok) {
+          const videosData = await videosResponse.json();
+          
+          if (videosData.status === 200 && videosData.data?.items) {
+            // Merge the videos into the profile data
+            profileData.data = {
+              ...profileData.data,
+              itemList: videosData.data.items
+            };
+          }
+        }
+      } catch (videosError) {
+        console.warn('Failed to fetch videos:', videosError);
+        // We still continue with just the profile data
       }
       
       // Map the API response to our TikTokProfile structure
-      return mapTikTokProfileData(data);
+      return mapTikTokProfileData(profileData);
     }
   } catch (error) {
     console.error('Error fetching TikTok profile:', error);

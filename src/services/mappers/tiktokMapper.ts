@@ -14,8 +14,9 @@ export const mapTikTokProfileData = (response: RapidAPIResponse): TikTokProfile 
     throw new Error('Invalid API response format');
   }
   
-  // Extract user info from the new API structure
+  // Extract user info from the API structure
   const userInfo = response.data?.owner?.user_info;
+  const userStats = response.data?.owner?.stats || {};
   
   if (!userInfo) {
     throw new Error('User data is incomplete or missing');
@@ -24,47 +25,51 @@ export const mapTikTokProfileData = (response: RapidAPIResponse): TikTokProfile 
   // Extract videos from the API response if available
   const videos: TikTokVideo[] = (response.data?.itemList || []).map(item => ({
     id: item.id,
-    title: '',
-    description: item.desc,
-    thumbnail: item.video.cover,
-    views: item.stats.playCount,
-    likeCount: item.stats.diggCount,
-    commentCount: item.stats.commentCount,
-    shareCount: item.stats.shareCount,
-    createTime: new Date(item.createTime * 1000).toISOString(),
+    title: item.desc || '',
+    description: item.desc || '',
+    thumbnail: item.video?.cover || item.video?.originCover || '',
+    views: item.stats?.playCount || 0,
+    likeCount: item.stats?.diggCount || 0,
+    commentCount: item.stats?.commentCount || 0,
+    shareCount: item.stats?.shareCount || 0,
+    createTime: item.createTime ? new Date(item.createTime * 1000).toISOString() : undefined,
     stats: {
-      playCount: item.stats.playCount,
-      likeCount: item.stats.diggCount,
-      commentCount: item.stats.commentCount,
-      shareCount: item.stats.shareCount
+      playCount: item.stats?.playCount || 0,
+      likeCount: item.stats?.diggCount || 0,
+      commentCount: item.stats?.commentCount || 0,
+      shareCount: item.stats?.shareCount || 0
     },
     displayStats: {
-      plays: formatNumber(item.stats.playCount),
-      likes: formatNumber(item.stats.diggCount),
-      comments: formatNumber(item.stats.commentCount),
-      shares: formatNumber(item.stats.shareCount)
+      plays: formatNumber(item.stats?.playCount || 0),
+      likes: formatNumber(item.stats?.diggCount || 0),
+      comments: formatNumber(item.stats?.commentCount || 0),
+      shares: formatNumber(item.stats?.shareCount || 0)
     }
   }));
   
+  // Get total likes either from the user stats or sum from videos if available
+  const totalLikes = userInfo.total_favorited || userStats.heartCount || userInfo.hearts || userStats.diggCount || 0;
+  
   // Map the profile data to our standardized structure
   const profile: TikTokProfile = {
-    id: userInfo.uid,
-    uniqueId: userInfo.unique_id,
-    username: userInfo.unique_id,
-    nickname: userInfo.nickname,
-    displayName: userInfo.nickname,
-    avatar: userInfo.avatar_thumb?.url_list?.[0] || '',
-    bio: userInfo.signature,
+    id: userInfo.uid || userInfo.id || '',
+    uniqueId: userInfo.unique_id || userInfo.uniqueId || '',
+    username: userInfo.unique_id || userInfo.uniqueId || '',
+    nickname: userInfo.nickname || '',
+    displayName: userInfo.nickname || '',
+    avatar: userInfo.avatar_thumb?.url_list?.[0] || userInfo.avatarThumb || userInfo.avatarMedium || '',
+    bio: userInfo.signature || '',
     verified: userInfo.verified || false,
-    followers: userInfo.follower_count || 0,
-    following: userInfo.following_count || 0,
-    likes: 0, // This field might not be available in the API response
+    followers: userInfo.follower_count || userStats.followerCount || 0,
+    following: userInfo.following_count || userStats.followingCount || 0,
+    likes: totalLikes,
+    videoCount: userInfo.video_count || userStats.videoCount || videos.length,
     videos: videos,
     displayStats: {
-      followers: formatNumber(userInfo.follower_count || 0),
-      following: formatNumber(userInfo.following_count || 0),
-      likes: formatNumber(0), // Placeholder since likes might not be available
-      posts: formatNumber(videos.length)
+      followers: formatNumber(userInfo.follower_count || userStats.followerCount || 0),
+      following: formatNumber(userInfo.following_count || userStats.followingCount || 0),
+      likes: formatNumber(totalLikes),
+      posts: formatNumber(userInfo.video_count || userStats.videoCount || videos.length)
     }
   };
   

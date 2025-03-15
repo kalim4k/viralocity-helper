@@ -62,9 +62,19 @@ export interface RapidAPIResponse {
         };
         follower_count?: number;
         following_count?: number;
+        total_favorited?: number;
+        video_count?: number;
         unique_id: string;
         verified?: boolean;
-      }
+        hearts?: number;
+      };
+      stats?: {
+        followerCount?: number;
+        followingCount?: number;
+        heartCount?: number;
+        videoCount?: number;
+        diggCount?: number;
+      };
     };
     cursor?: string;
     hasMore?: boolean;
@@ -99,6 +109,7 @@ export interface RapidAPIResponse {
       video: {
         id: string;
         cover: string;
+        originCover?: string;
         playAddr: string;
         dynamicCover: string;
         duration: number;
