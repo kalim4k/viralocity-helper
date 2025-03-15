@@ -56,12 +56,22 @@ export const TikTokProfileCard: React.FC<TikTokProfileCardProps> = ({
           <p className="text-sm mt-1">{profile.bio || "Aucune biographie disponible"}</p>
         </div>
         
-        {/* Abonnés section only */}
-        <div className="glass p-4 rounded-xl text-center mt-4">
-          <p className="text-sm text-tva-text/70">Abonnés</p>
-          <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-tva-primary to-tva-secondary">
-            {formatNumber(profile.followers)}
-          </p>
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          {/* Abonnés section */}
+          <div className="glass p-4 rounded-xl text-center">
+            <p className="text-sm text-tva-text/70">Abonnés</p>
+            <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-tva-primary to-tva-secondary">
+              {formatNumber(profile.followers)}
+            </p>
+          </div>
+          
+          {/* Likes section */}
+          <div className="glass p-4 rounded-xl text-center">
+            <p className="text-sm text-tva-text/70">Likes</p>
+            <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-tva-primary to-tva-accent">
+              {formatNumber(profile.likes)}
+            </p>
+          </div>
         </div>
 
         {onDisconnect && (

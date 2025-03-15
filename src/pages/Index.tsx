@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
 import { Flame, Key } from 'lucide-react';
 import { TikTokConnectModal, TikTokProfile } from '../components/TikTokConnectModal';
 import { TikTokProfileCard } from '../components/TikTokProfileCard';
+import { TikTokVideoGrid } from '../components/TikTokVideoGrid';
 import { saveTikTokAccount, getDefaultTikTokAccount, disconnectTikTokAccount } from '@/services/tiktokAccountService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLicense } from '@/contexts/LicenseContext';
@@ -179,6 +181,11 @@ const Index = () => {
           </section> : <section className="space-y-6">
             {profile && <>
                 <TikTokProfileCard profile={profile} onDisconnect={handleDisconnect} />
+                
+                {/* Display videos if available */}
+                {profile.videos && profile.videos.length > 0 && (
+                  <TikTokVideoGrid videos={profile.videos} maxVideos={3} />
+                )}
                 
                 {hasLicense ? <button onClick={() => navigate('/generateurs')} className="w-full py-3 px-4 bg-gradient-to-r from-tva-primary to-tva-secondary text-white font-medium rounded-xl hover:shadow-lg hover:opacity-90 transition-all">
                     Commencer à créer du contenu viral
