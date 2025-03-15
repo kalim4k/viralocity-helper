@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { useNavigate } from 'react-router-dom';
@@ -303,7 +304,7 @@ const ProfilePage = () => {
                   className="mt-4"
                   onClick={() => navigate('/')}
                 >
-                  <TiktokIcon className="h-4 w-4 mr-2" />
+                  <TiktokIcon className="mr-2" />
                   Connecter un compte
                 </Button>
               </div>

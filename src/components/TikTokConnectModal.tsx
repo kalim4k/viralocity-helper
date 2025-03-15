@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -123,12 +124,12 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   <span>Connexion...</span>
                 </>
               ) : (
                 <>
-                  <TiktokIcon />
+                  <TiktokIcon className="mr-2" />
                   <span>Connecter</span>
                 </>
               )}
