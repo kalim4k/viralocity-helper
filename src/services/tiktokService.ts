@@ -42,7 +42,6 @@ export const fetchTikTokProfile = async (username: string) => {
       const profileUrl = `https://tiktok-user.p.rapidapi.com/getuser/${cleanUsername}`;
       const videosUrl = `https://tiktok-user.p.rapidapi.com/user/videos/${cleanUsername}`;
       
-      // First fetch user profile
       const profileResponse = await fetch(profileUrl, {
         method: 'GET',
         headers: {
@@ -64,8 +63,7 @@ export const fetchTikTokProfile = async (username: string) => {
         throw new Error(`Erreur: ${JSON.stringify(profileData)}`);
       }
       
-      // Then fetch user videos
-      let videosData = null;
+      // Try to get videos separately
       try {
         const videosResponse = await fetch(videosUrl, {
           method: 'GET',
@@ -76,15 +74,13 @@ export const fetchTikTokProfile = async (username: string) => {
         });
         
         if (videosResponse.ok) {
-          videosData = await videosResponse.json();
+          const videosData = await videosResponse.json();
           
-          if (videosData.status === 200 && videosData.data?.itemList) {
+          if (videosData.status === 200 && videosData.data?.items) {
             // Merge the videos into the profile data
             profileData.data = {
               ...profileData.data,
-              itemList: videosData.data.itemList,
-              cursor: videosData.data.cursor,
-              hasMore: videosData.data.hasMore
+              itemList: videosData.data.items
             };
           }
         }
