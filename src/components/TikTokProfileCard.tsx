@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { UserCheck, LogOut } from 'lucide-react';
 import { TikTokProfile } from './TikTokConnectModal';
@@ -49,7 +50,13 @@ export const TikTokProfileCard: React.FC<TikTokProfileCardProps> = ({
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-4 mt-6">
+        {/* Bio section */}
+        <div className="glass p-4 rounded-xl text-center mt-4 mb-2">
+          <p className="text-sm text-tva-text/70">Bio</p>
+          <p className="text-sm mt-1">{profile.bio || "Aucune biographie disponible"}</p>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4 mt-4">
           <div className="glass p-4 rounded-xl text-center">
             <p className="text-sm text-tva-text/70">Abonnés</p>
             <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-tva-primary to-tva-secondary">
