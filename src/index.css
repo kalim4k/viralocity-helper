@@ -97,7 +97,7 @@
 }
 
 .glow-border {
-  box-shadow: 0 0 5px theme('colors.tva-primary');
+  box-shadow: 0 0 5px #1C83FF;
 }
 
 /* Animation pour l'effet de frappe de texte */
@@ -118,7 +118,7 @@
 
 @keyframes blink-caret {
   from, to { border-color: transparent }
-  50% { border-color: theme('colors.tva-primary') }
+  50% { border-color: #1C83FF }
 }
 
 /* Animation de pulsation douce */

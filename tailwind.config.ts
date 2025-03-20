@@ -117,7 +117,7 @@ export default {
 				'pulse-soft': 'pulse-soft 4s ease-in-out infinite',
 				'slide-up': 'slide-up 0.6s ease-out',
 				'glow': 'glow 2s ease-in-out infinite',
-				'nav-item-hover': 'nav-item-hover 0.3s ease-in-out'
+				'nav-item-hover': 'nav-item-hover 0.3s ease-out'
 			},
 			backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
