@@ -11,7 +11,7 @@ import { ProtectedLicenseRoute } from "@/components/ProtectedLicenseRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import GenerateursPage from "./pages/Generateurs";
-import RevenuePage from "./pages/Revenue";
+import BoostPage from "./pages/Boost";
 import AnalysePage from "./pages/Analyse";
 import TelechargementPage from "./pages/Telechargement";
 import TendancePage from "./pages/Tendance";
@@ -47,10 +47,10 @@ const App = () => (
                 } 
               />
               <Route 
-                path="/revenue" 
+                path="/boost" 
                 element={
                   <ProtectedLicenseRoute>
-                    <RevenuePage />
+                    <BoostPage />
                   </ProtectedLicenseRoute>
                 } 
               />
