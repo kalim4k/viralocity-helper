@@ -185,10 +185,7 @@ const BoostPage = () => {
             <Zap className="text-tva-accent mr-2" />
             Boost d'Abonnés 
           </h1>
-          <div className="badge">
-            <Shield size={14} className="mr-1" />
-            Réservé aux licences actives
-          </div>
+          
         </div>
 
         {/* SECTION RECHERCHE */}
