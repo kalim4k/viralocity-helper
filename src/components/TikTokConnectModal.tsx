@@ -99,7 +99,7 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
               placeholder="Nom d'utilisateur TikTok (ex: charlidamelio)"
               value={username}
               onChange={handleUsernameChange}
-              className="bg-tva-surface border-tva-border text-black"
+              className="bg-tva-surface border-tva-border text-tva-text"
               disabled={isLoading}
             />
             {error && (
@@ -108,7 +108,7 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
                 <span>{error}</span>
               </p>
             )}
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-tva-text/50">
               Essayez avec des comptes populaires comme: charlidamelio, addisonre, bella.poarch
             </p>
           </div>
@@ -129,8 +129,8 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
                 </>
               ) : (
                 <>
-                  <TiktokIcon className="mr-2" />
-                  <span>Connecter</span>
+                  <TiktokIcon />
+                  <span className="ml-2">Connecter</span>
                 </>
               )}
             </Button>
@@ -140,5 +140,3 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
     </Dialog>
   );
 };
-
-export type { TikTokProfile, TikTokVideo } from '@/types/tiktok.types';

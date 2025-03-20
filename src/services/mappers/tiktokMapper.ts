@@ -27,7 +27,7 @@ export const mapTikTokProfileData = (response: RapidAPIResponse): TikTokProfile 
     id: item.id,
     title: item.desc || '',
     description: item.desc || '',
-    thumbnail: item.video?.cover || item.video?.originCover || '',
+    thumbnail: item.video?.cover || '',
     views: item.stats?.playCount || 0,
     likeCount: item.stats?.diggCount || 0,
     commentCount: item.stats?.commentCount || 0,
@@ -52,12 +52,12 @@ export const mapTikTokProfileData = (response: RapidAPIResponse): TikTokProfile 
   
   // Map the profile data to our standardized structure
   const profile: TikTokProfile = {
-    id: userInfo.uid || userInfo.id || '',
-    uniqueId: userInfo.unique_id || userInfo.uniqueId || '',
-    username: userInfo.unique_id || userInfo.uniqueId || '',
+    id: userInfo.uid || '',
+    uniqueId: userInfo.unique_id || '',
+    username: userInfo.unique_id || '',
     nickname: userInfo.nickname || '',
     displayName: userInfo.nickname || '',
-    avatar: userInfo.avatar_thumb?.url_list?.[0] || userInfo.avatarThumb || userInfo.avatarMedium || '',
+    avatar: userInfo.avatar_thumb?.url_list?.[0] || '',
     bio: userInfo.signature || '',
     verified: userInfo.verified || false,
     followers: userInfo.follower_count || userStats.followerCount || 0,

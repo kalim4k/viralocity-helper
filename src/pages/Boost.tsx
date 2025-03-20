@@ -2,13 +2,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppLayout } from '../components/AppLayout';
 import { fetchTikTokProfile } from '@/services/tiktokService';
-import { TikTokProfile } from '@/components/TikTokConnectModal';
+import { TikTokProfile } from '@/types/tiktok.types';
 import { TikTokProfileCard } from '@/components/TikTokProfileCard';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Search, Zap, ChevronRight, Users, Shield, Rocket } from 'lucide-react';
 import { toast } from 'sonner';
+import { Progress } from '@/components/ui/progress';
 
 // Types pour notre simulation de boost
 interface BoostState {
@@ -291,7 +292,7 @@ const BoostPage = () => {
                 {boostState.donorProfile && (
                   <div className="p-2 bg-tva-surface/40 rounded-lg flex items-center">
                     <img 
-                      src={boostState.donorProfile.avatarUrl} 
+                      src={boostState.donorProfile.avatar} 
                       alt={boostState.donorProfile.nickname}
                       className="w-8 h-8 rounded-full object-cover mr-2" 
                     />
@@ -331,12 +332,7 @@ const BoostPage = () => {
               Boost en cours...
             </h2>
             
-            <div className="relative h-1 w-full bg-tva-surface overflow-hidden rounded-full">
-              <div 
-                className="absolute left-0 h-full bg-gradient-to-r from-tva-accent to-tva-primary rounded-full transition-all duration-100 ease-linear"
-                style={{ width: `${boostState.progress}%` }}
-              ></div>
-            </div>
+            <Progress value={boostState.progress} className="h-1 bg-tva-surface" />
             
             <div 
               ref={terminalRef}

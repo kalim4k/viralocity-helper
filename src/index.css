@@ -36,6 +36,15 @@
     --ring: 217 100% 55%;
 
     --radius: 0.8rem;
+
+    /* TikTok Viral Assistant custom colors */
+    --tva-text: 240 10% 98%;
+    --tva-background: 240 10% 4%;
+    --tva-primary: 217 100% 55%;
+    --tva-secondary: 174 100% 62%;
+    --tva-accent: 330 100% 62%;
+    --tva-surface: 240 10% 6%;
+    --tva-border: 240 5% 15%;
   }
 }
 

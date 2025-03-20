@@ -81,8 +81,8 @@ export interface RapidAPIResponse {
     itemList?: Array<{
       id: string;
       desc: string;
-      createTime: number;
-      author: {
+      createTime?: number;
+      author?: {
         id: string;
         uniqueId: string;
         nickname: string;
@@ -93,7 +93,7 @@ export interface RapidAPIResponse {
         verified: boolean;
         secUid: string;
       };
-      authorStats: {
+      authorStats?: {
         followerCount: number;
         followingCount: number;
         heartCount: number;
@@ -107,14 +107,14 @@ export interface RapidAPIResponse {
         shareCount: number;
       };
       video: {
-        id: string;
+        id?: string;
         cover: string;
         originCover?: string;
-        playAddr: string;
-        dynamicCover: string;
-        duration: number;
-        width: number;
-        height: number;
+        playAddr?: string;
+        dynamicCover?: string;
+        duration?: number;
+        width?: number;
+        height?: number;
       };
     }>;
   };
