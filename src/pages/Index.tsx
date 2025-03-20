@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
-import { Flame, Key, Zap } from 'lucide-react';
+import { Flame, Key } from 'lucide-react';
 import { TikTokConnectModal, TikTokProfile } from '../components/TikTokConnectModal';
 import { TikTokProfileCard } from '../components/TikTokProfileCard';
 import { saveTikTokAccount, getDefaultTikTokAccount, disconnectTikTokAccount } from '@/services/tiktokAccountService';
@@ -181,19 +180,9 @@ const Index = () => {
             {profile && <>
                 <TikTokProfileCard profile={profile} onDisconnect={handleDisconnect} />
                 
-                {hasLicense ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button onClick={() => navigate('/generateurs')} className="w-full py-3 px-4 bg-gradient-to-r from-tva-primary to-tva-secondary text-white font-medium rounded-xl hover:shadow-lg hover:opacity-90 transition-all flex items-center justify-center gap-2">
-                      <Sparkles size={18} />
-                      Créer du contenu viral
-                    </button>
-                    <button onClick={() => navigate('/boost')} className="w-full py-3 px-4 bg-gradient-to-r from-tva-accent to-tva-primary text-white font-medium rounded-xl hover:shadow-lg hover:opacity-90 transition-all flex items-center justify-center gap-2">
-                      <Zap size={18} />
-                      Booster mes abonnés
-                    </button>
-                  </div>
-                ) : (
-                  <div className="glass p-4 rounded-xl space-y-3">
+                {hasLicense ? <button onClick={() => navigate('/generateurs')} className="w-full py-3 px-4 bg-gradient-to-r from-tva-primary to-tva-secondary text-white font-medium rounded-xl hover:shadow-lg hover:opacity-90 transition-all">
+                    Commencer à créer du contenu viral
+                  </button> : <div className="glass p-4 rounded-xl space-y-3">
                     <p className="text-center text-sm">
                       Activez une licence pour accéder à toutes les fonctionnalités de génération de contenu
                     </p>
@@ -201,8 +190,7 @@ const Index = () => {
                       <Key className="h-4 w-4 mr-2" />
                       Activer une licence dans mon profil
                     </Button>
-                  </div>
-                )}
+                  </div>}
               </>}
           </section>}
       </div>
