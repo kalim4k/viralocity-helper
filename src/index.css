@@ -3,83 +3,39 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --background: 240 10% 4%;
+    --foreground: 240 10% 98%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card: 240 10% 6%;
+    --card-foreground: 240 10% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover: 240 10% 6%;
+    --popover-foreground: 240 10% 98%;
 
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 217 100% 55%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
+    --secondary: 174 100% 62%;
+    --secondary-foreground: 0 0% 0%;
 
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 65%;
 
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --accent: 330 100% 62%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 10% 3.9%;
+    --border: 240 5% 15%;
+    --input: 240 5% 15%;
+    --ring: 217 100% 55%;
 
-    --radius: 0.5rem;
-
-    --tva-text: 240 10% 3.9%;
-    --tva-background: 0 0% 100%;
-    --tva-primary: 250 91% 48%;
-    --tva-secondary: 211 91% 48%;
-    --tva-accent: 329 100% 56%;
-    --tva-surface: 240 10% 97%;
-    --tva-border: 240 6% 90%;
-  }
-
-  .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-
-    --tva-text: 0 0% 98%;
-    --tva-background: 240 10% 3.9%;
-    --tva-primary: 250 91% 48%;
-    --tva-secondary: 211 91% 48%;
-    --tva-accent: 329 100% 56%;
-    --tva-surface: 240 10% 9%;
-    --tva-border: 240 3.7% 15.9%;
+    --radius: 0.8rem;
   }
 }
 
@@ -87,141 +43,81 @@
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground;
+
+  html, body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    @apply bg-tva-bg text-tva-text overflow-x-hidden;
+  }
+
+  /* Définir les transitions globales */
+  * {
+    @apply transition-all duration-300;
   }
 }
 
+/* Personnalisation de la barre de défilement */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-tva-border rounded-full;
+}
+
+/* Style pour le glassmorphism */
 .glass {
-  @apply backdrop-blur-md bg-white/10 dark:bg-black/10 border border-white/20 dark:border-white/10;
+  @apply backdrop-blur-md bg-tva-surface border border-tva-border;
 }
 
+/* Style pour les cartes avec effet de survol */
+.hover-card {
+  @apply transform transition-transform duration-300 hover:scale-[1.02] hover:shadow-md;
+}
+
+/* Style avancé pour les badges */
+.badge {
+  @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-tva-primary bg-opacity-10 text-tva-primary;
+}
+
+/* Animations pour les éléments d'interface */
+.nav-item {
+  @apply relative overflow-hidden;
+}
+
+.nav-item::after {
+  content: '';
+  @apply absolute bottom-0 left-0 w-0 h-0.5 bg-tva-secondary transition-all duration-300;
+}
+
+.nav-item:hover::after {
+  @apply w-full;
+}
+
+/* Animation pour les boutons */
+.animated-btn {
+  @apply relative overflow-hidden;
+}
+
+.animated-btn::before {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-r from-tva-primary to-tva-secondary opacity-0 transition-opacity duration-300;
+}
+
+.animated-btn:hover::before {
+  @apply opacity-20;
+}
+
+/* Effet de flou pour les arrière-plans */
+.blur-bg {
+  @apply backdrop-blur-lg bg-tva-bg bg-opacity-60;
+}
+
+/* Style pour les bordures brillantes */
 .glow-border {
-  box-shadow: 0 0 5px #1C83FF;
-}
-
-/* Animation pour l'effet de frappe de texte */
-@keyframes typing {
-  from { width: 0 }
-  to { width: 100% }
-}
-
-.animate-typing {
-  display: inline-block;
-  overflow: hidden;
-  border-right: .15em solid;
-  white-space: nowrap;
-  animation: 
-    typing 1s steps(40, end),
-    blink-caret .75s step-end infinite;
-}
-
-@keyframes blink-caret {
-  from, to { border-color: transparent }
-  50% { border-color: #1C83FF }
-}
-
-/* Animation de pulsation douce */
-@keyframes pulse-soft {
-  0%, 100% { 
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% { 
-    opacity: 0.8;
-    transform: scale(1.02);
-  }
-}
-
-.animate-pulse-soft {
-  animation: pulse-soft 3s ease-in-out infinite;
-}
-
-/* Animation d'apparition en montant */
-@keyframes slide-up {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-slide-up {
-  animation: slide-up 0.5s ease-out forwards;
-}
-
-/* Animation de mise à l'échelle */
-@keyframes scale-in {
-  0% {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-scale-in {
-  animation: scale-in 0.3s ease-out forwards;
-}
-
-/* Animation de fade-in */
-@keyframes fade-in {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.5s ease-out forwards;
-}
-
-/* Animation de texte flou */
-@keyframes glitch {
-  0% {
-    text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75),
-                -0.05em -0.025em 0 rgba(0, 255, 0, 0.75),
-                0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
-  }
-  14% {
-    text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75),
-                -0.05em -0.025em 0 rgba(0, 255, 0, 0.75),
-                0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
-  }
-  15% {
-    text-shadow: -0.05em -0.025em 0 rgba(255, 0, 0, 0.75),
-                0.025em 0.025em 0 rgba(0, 255, 0, 0.75),
-                -0.05em -0.05em 0 rgba(0, 0, 255, 0.75);
-  }
-  49% {
-    text-shadow: -0.05em -0.025em 0 rgba(255, 0, 0, 0.75),
-                0.025em 0.025em 0 rgba(0, 255, 0, 0.75),
-                -0.05em -0.05em 0 rgba(0, 0, 255, 0.75);
-  }
-  50% {
-    text-shadow: 0.025em 0.05em 0 rgba(255, 0, 0, 0.75),
-                0.05em 0 0 rgba(0, 255, 0, 0.75),
-                0 -0.05em 0 rgba(0, 0, 255, 0.75);
-  }
-  99% {
-    text-shadow: 0.025em 0.05em 0 rgba(255, 0, 0, 0.75),
-                0.05em 0 0 rgba(0, 255, 0, 0.75),
-                0 -0.05em 0 rgba(0, 0, 255, 0.75);
-  }
-  100% {
-    text-shadow: -0.025em 0 0 rgba(255, 0, 0, 0.75),
-                -0.025em -0.025em 0 rgba(0, 255, 0, 0.75),
-                -0.025em -0.05em 0 rgba(0, 0, 255, 0.75);
-  }
-}
-
-.text-glitch {
-  animation: glitch 1s linear infinite;
+  @apply border border-tva-secondary shadow-[0_0_10px_rgba(58,255,229,0.3)];
 }
