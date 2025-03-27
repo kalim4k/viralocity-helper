@@ -54,14 +54,14 @@ export const fetchTikTokUserProfile = async (username: string): Promise<RapidAPI
         itemList: Array.from({ length: 9 }, (_, i) => ({
           id: `video${i + 1}`,
           desc: `Vidéo TikTok #${i + 1} - Découvrez mes astuces pour gagner en visibilité!`,
+          video: {
+            cover: `https://placehold.co/800x1400/4f46e5/ffffff?text=Video${i + 1}`
+          },
           stats: {
             playCount: 10000 + Math.floor(Math.random() * 90000),
             diggCount: 1000 + Math.floor(Math.random() * 9000),
             commentCount: 100 + Math.floor(Math.random() * 900),
             shareCount: 50 + Math.floor(Math.random() * 450)
-          },
-          video: {
-            cover: `https://placehold.co/800x1400/4f46e5/ffffff?text=Video${i + 1}`
           }
         }))
       }

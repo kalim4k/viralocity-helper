@@ -14,9 +14,9 @@ const PAGE_INFO = {
     title: 'Générateurs de Contenu',
     description: 'Créez facilement des scripts, des descriptions et des légendes optimisées pour TikTok grâce à notre outil d\'IA. Débloquez cette fonctionnalité pour gagner du temps et améliorer l\'engagement.'
   },
-  '/revenue': {
-    title: 'Statistiques de Revenus',
-    description: 'Analysez vos gains, suivez vos performances et obtenez des recommandations personnalisées pour maximiser vos revenus sur TikTok.'
+  '/boost': {
+    title: 'Booster d\'Abonnés',
+    description: 'Simulez l\'augmentation rapide de vos abonnés TikTok avec notre outil futuriste. Visualisez votre croissance potentielle et planifiez votre stratégie de développement.'
   },
   '/analyse': {
     title: 'Analyse de Profil',

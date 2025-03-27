@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserCheck, LogOut } from 'lucide-react';
-import { TikTokProfile } from '@/types/tiktok.types';
+import { TikTokProfile } from './TikTokConnectModal';
 import { formatNumber } from '@/utils/formatters';
 import { Button } from './ui/button';
 import {
