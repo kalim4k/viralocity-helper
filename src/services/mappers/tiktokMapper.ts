@@ -4,7 +4,7 @@ import { formatNumber } from '@/utils/formatters';
 
 /**
  * Maps the raw TikTok API response to our TikTokProfile type
- * @param response The raw API response
+ * @param response The raw API response (from either Apify or RapidAPI)
  * @returns A cleaned and standardized TikTokProfile object
  */
 export const mapTikTokProfileData = (response: RapidAPIResponse): TikTokProfile => {
@@ -47,29 +47,79 @@ export const mapTikTokProfileData = (response: RapidAPIResponse): TikTokProfile 
     }
   }));
   
-  // Get total likes either from the user stats or sum from videos if available
-  const totalLikes = userInfo.total_favorited || userStats.heartCount || userInfo.hearts || userStats.diggCount || 0;
+  // Handle both Apify and RapidAPI data structures
+  const isApifyData = 'follower_count' in userInfo;
+  
+  // Get user ID based on the source
+  const userId = isApifyData 
+    ? userInfo.uid || userInfo.sec_uid 
+    : userInfo.uid || userInfo.id || '';
+  
+  // Get username based on the source
+  const username = isApifyData 
+    ? userInfo.unique_id 
+    : userInfo.unique_id || userInfo.uniqueId || '';
+  
+  // Get nickname (display name) based on the source
+  const nickname = isApifyData 
+    ? userInfo.nickname 
+    : userInfo.nickname || '';
+  
+  // Get follower count based on the source
+  const followerCount = isApifyData 
+    ? userInfo.follower_count 
+    : userInfo.follower_count || userStats.followerCount || 0;
+  
+  // Get following count based on the source
+  const followingCount = isApifyData 
+    ? userInfo.following_count 
+    : userInfo.following_count || userStats.followingCount || 0;
+  
+  // Get total likes based on the source
+  const totalLikes = isApifyData 
+    ? userInfo.total_favorited || 0 
+    : userInfo.total_favorited || userStats.heartCount || userInfo.hearts || userStats.diggCount || 0;
+  
+  // Get video count based on the source
+  const videoCount = isApifyData 
+    ? userInfo.aweme_count 
+    : userInfo.video_count || userStats.videoCount || videos.length;
+  
+  // Get avatar URL based on the source
+  const avatarUrl = isApifyData 
+    ? (userInfo.avatar_thumb?.url_list?.[0] || '') 
+    : (userInfo.avatar_thumb?.url_list?.[0] || userInfo.avatarThumb || userInfo.avatarMedium || '');
+  
+  // Get bio based on the source
+  const bio = isApifyData 
+    ? (userInfo.signature || '') 
+    : (userInfo.signature || '');
+  
+  // Get verified status based on the source
+  const verified = isApifyData 
+    ? !!userInfo.enterprise_verify_reason 
+    : userInfo.verified || false;
   
   // Map the profile data to our standardized structure
   const profile: TikTokProfile = {
-    id: userInfo.uid || userInfo.id || '',
-    uniqueId: userInfo.unique_id || userInfo.uniqueId || '',
-    username: userInfo.unique_id || userInfo.uniqueId || '',
-    nickname: userInfo.nickname || '',
-    displayName: userInfo.nickname || '',
-    avatar: userInfo.avatar_thumb?.url_list?.[0] || userInfo.avatarThumb || userInfo.avatarMedium || '',
-    bio: userInfo.signature || '',
-    verified: userInfo.verified || false,
-    followers: userInfo.follower_count || userStats.followerCount || 0,
-    following: userInfo.following_count || userStats.followingCount || 0,
+    id: userId,
+    uniqueId: username,
+    username: username,
+    nickname: nickname,
+    displayName: nickname,
+    avatar: avatarUrl,
+    bio: bio,
+    verified: verified,
+    followers: followerCount,
+    following: followingCount,
     likes: totalLikes,
-    videoCount: userInfo.video_count || userStats.videoCount || videos.length,
+    videoCount: videoCount,
     videos: videos,
     displayStats: {
-      followers: formatNumber(userInfo.follower_count || userStats.followerCount || 0),
-      following: formatNumber(userInfo.following_count || userStats.followingCount || 0),
+      followers: formatNumber(followerCount),
+      following: formatNumber(followingCount),
       likes: formatNumber(totalLikes),
-      posts: formatNumber(userInfo.video_count || userStats.videoCount || videos.length)
+      posts: formatNumber(videoCount)
     }
   };
   

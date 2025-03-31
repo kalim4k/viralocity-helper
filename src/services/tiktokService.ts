@@ -16,7 +16,7 @@ export const fetchTikTokProfile = async (username: string) => {
     // Remove @ from username if present
     const cleanUsername = username.startsWith('@') ? username.substring(1) : username;
     
-    // First try using the Edge Function
+    // Use the Edge Function which now supports both Apify and RapidAPI
     try {
       const { data, error } = await supabase.functions.invoke('tiktok-profile', {
         body: { username: cleanUsername }
