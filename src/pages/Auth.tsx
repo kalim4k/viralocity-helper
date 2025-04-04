@@ -9,6 +9,7 @@ import { ResetPasswordForm } from "@/components/ResetPasswordForm";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/AppLayout";
+import { Loader2 } from "lucide-react";
 
 const Auth = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -18,6 +19,9 @@ const Auth = () => {
     // Check URL parameters first
     const tabParam = searchParams.get("tab");
     if (tabParam === "reset-password") return "reset-password";
+    if (tabParam === "login") return "login";
+    if (tabParam === "signup") return "signup";
+    if (tabParam === "forgot-password") return "forgot-password";
     
     // Then check location state (for redirects from other components)
     const state = location.state as { defaultTab?: string } | null;
@@ -33,11 +37,31 @@ const Auth = () => {
     const tabParam = searchParams.get("tab");
     if (tabParam === "reset-password") {
       setActiveTab("reset-password");
+    } else if (tabParam === "login") {
+      setActiveTab("login");
+    } else if (tabParam === "signup") {
+      setActiveTab("signup");
+    } else if (tabParam === "forgot-password") {
+      setActiveTab("forgot-password");
     }
   }, [searchParams]);
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-8 w-8 animate-spin text-tva-primary" />
+            <p className="text-sm text-tva-text/70">Vérification de l'authentification...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   // Redirect if already authenticated
-  if (isAuthenticated && !isLoading) {
+  if (isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 

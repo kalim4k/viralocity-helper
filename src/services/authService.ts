@@ -11,7 +11,7 @@ export const signUp = async (email: string, password: string, username?: string)
         data: {
           username,
         },
-        emailRedirectTo: `${window.location.origin}/auth`,
+        emailRedirectTo: `${window.location.origin}/auth?tab=login`,
       },
     });
 
@@ -19,7 +19,16 @@ export const signUp = async (email: string, password: string, username?: string)
     return { data, error: null };
   } catch (error: any) {
     console.error("Error signing up:", error);
-    toast.error(`Erreur lors de l'inscription: ${error.message}`);
+    
+    // More user-friendly error messages
+    let errorMessage = error.message;
+    if (error.message.includes("User already registered")) {
+      errorMessage = "Cet email est déjà utilisé. Veuillez vous connecter.";
+    } else if (error.message.includes("Password")) {
+      errorMessage = "Le mot de passe doit contenir au moins 6 caractères.";
+    }
+    
+    toast.error(`Erreur lors de l'inscription: ${errorMessage}`);
     return { data: null, error };
   }
 };
@@ -35,7 +44,14 @@ export const signIn = async (email: string, password: string) => {
     return { data, error: null };
   } catch (error: any) {
     console.error("Error signing in:", error);
-    toast.error(`Erreur lors de la connexion: ${error.message}`);
+    
+    // More user-friendly error messages
+    let errorMessage = error.message;
+    if (error.message.includes("Invalid login credentials")) {
+      errorMessage = "Email ou mot de passe incorrect.";
+    }
+    
+    toast.error(`Erreur lors de la connexion: ${errorMessage}`);
     return { data: null, error };
   }
 };

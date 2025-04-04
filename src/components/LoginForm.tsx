@@ -4,78 +4,88 @@ import { useNavigate } from "react-router-dom";
 import { signIn } from "@/services/authService";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+
+// Form validation schema
+const formSchema = z.object({
+  email: z.string().email("Email invalide").min(1, "L'email est requis"),
+  password: z.string().min(1, "Le mot de passe est requis"),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 export const LoginForm: React.FC = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.email || !formData.password) {
-      toast.error("Veuillez remplir tous les champs");
-      return;
-    }
-    
+  const onSubmit = async (values: FormData) => {
     setIsLoading(true);
     
-    const { error } = await signIn(formData.email, formData.password);
+    const { error } = await signIn(values.email, values.password);
     
     setIsLoading(false);
     
     if (!error) {
-      toast.success("Connexion réussie!");
       navigate("/");
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">
-      <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium">
-          Email
-        </label>
-        <Input
-          id="email"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-full max-w-md">
+        <FormField
+          control={form.control}
           name="email"
-          type="email"
-          value={formData.email}
-          onChange={handleChange}
-          placeholder="votre@email.com"
-          required
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input 
+                  type="email" 
+                  placeholder="votre@email.com" 
+                  {...field} 
+                  autoComplete="email"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      
-      <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium">
-          Mot de passe
-        </label>
-        <Input
-          id="password"
+        
+        <FormField
+          control={form.control}
           name="password"
-          type="password"
-          value={formData.password}
-          onChange={handleChange}
-          placeholder="********"
-          required
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Mot de passe</FormLabel>
+              <FormControl>
+                <Input 
+                  type="password" 
+                  placeholder="********" 
+                  {...field} 
+                  autoComplete="current-password"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Connexion en cours..." : "Se connecter"}
-      </Button>
-    </form>
+        
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? "Connexion en cours..." : "Se connecter"}
+        </Button>
+      </form>
+    </Form>
   );
 };

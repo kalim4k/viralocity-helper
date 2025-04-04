@@ -7,39 +7,48 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle } from "lucide-react";
+import { z } from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+// Form validation schema
+const formSchema = z.object({
+  email: z.string().email("Email invalide").min(1, "L'email est requis"),
+  username: z.string().min(3, "Le nom d'utilisateur doit contenir au moins 3 caractères").optional(),
+  password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 export const SignupForm: React.FC = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    username: "",
-  });
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState("");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      username: "",
+      password: "",
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.email || !formData.password) {
-      toast.error("Veuillez remplir tous les champs requis");
-      return;
-    }
-    
+  const onSubmit = async (values: FormData) => {
     setIsLoading(true);
     
-    const { error } = await signUp(formData.email, formData.password, formData.username);
+    const { error } = await signUp(
+      values.email,
+      values.password,
+      values.username || undefined
+    );
     
     setIsLoading(false);
     
     if (!error) {
+      setSubmittedEmail(values.email);
       setIsSuccess(true);
       toast.success("Inscription réussie! Veuillez vérifier votre email pour confirmer votre compte.");
     }
@@ -52,7 +61,7 @@ export const SignupForm: React.FC = () => {
           <CheckCircle className="h-5 w-5 text-green-600" />
           <AlertTitle className="text-green-800">Inscription réussie!</AlertTitle>
           <AlertDescription className="text-green-700">
-            Nous avons envoyé un email de confirmation à <span className="font-medium">{formData.email}</span>.
+            Nous avons envoyé un email de confirmation à <span className="font-medium">{submittedEmail}</span>.
             <br />Veuillez vérifier votre boîte de réception et confirmer votre compte.
           </AlertDescription>
         </Alert>
@@ -67,54 +76,68 @@ export const SignupForm: React.FC = () => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">
-      <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium">
-          Email
-        </label>
-        <Input
-          id="email"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-full max-w-md">
+        <FormField
+          control={form.control}
           name="email"
-          type="email"
-          value={formData.email}
-          onChange={handleChange}
-          placeholder="votre@email.com"
-          required
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input 
+                  type="email" 
+                  placeholder="votre@email.com" 
+                  {...field} 
+                  autoComplete="email"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      
-      <div className="space-y-2">
-        <label htmlFor="username" className="text-sm font-medium">
-          Nom d'utilisateur
-        </label>
-        <Input
-          id="username"
+        
+        <FormField
+          control={form.control}
           name="username"
-          type="text"
-          value={formData.username}
-          onChange={handleChange}
-          placeholder="votre_nom"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nom d'utilisateur</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="votre_nom" 
+                  {...field} 
+                  autoComplete="username"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      
-      <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium">
-          Mot de passe
-        </label>
-        <Input
-          id="password"
+        
+        <FormField
+          control={form.control}
           name="password"
-          type="password"
-          value={formData.password}
-          onChange={handleChange}
-          placeholder="********"
-          required
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Mot de passe</FormLabel>
+              <FormControl>
+                <Input 
+                  type="password" 
+                  placeholder="********" 
+                  {...field} 
+                  autoComplete="new-password"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Inscription en cours..." : "S'inscrire"}
-      </Button>
-    </form>
+        
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? "Inscription en cours..." : "S'inscrire"}
+        </Button>
+      </form>
+    </Form>
   );
 };

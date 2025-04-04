@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { TikTokProfile, TikTokProfileAnalysis } from '@/types/tiktok.types';
-import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 /**
  * Sauvegarde une analyse de profil TikTok dans la base de données
@@ -24,19 +24,23 @@ export const saveProfileAnalysis = async (
       .insert({
         user_id: currentUser.user.id,
         tiktok_username: username,
-        profile_data: profileData,
-        analysis_results: analysisResults,
+        profile_data: profileData as any,
+        analysis_results: analysisResults as any,
         image_data: imageData
       })
       .select('id')
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error details:', error);
+      throw error;
+    }
     
     console.log('Analyse sauvegardée avec succès:', data.id);
     return data.id;
   } catch (error) {
     console.error('Erreur lors de la sauvegarde de l\'analyse:', error);
+    toast.error(`Erreur: ${error.message}`);
     throw error;
   }
 };
@@ -55,14 +59,16 @@ export const getProfileAnalysesHistory = async () => {
     const { data, error } = await supabase
       .from('profile_analyses')
       .select('*')
+      .eq('user_id', currentUser.user.id)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
     
-    return data;
+    return data || [];
   } catch (error) {
     console.error('Erreur lors de la récupération de l\'historique des analyses:', error);
-    throw error;
+    toast.error(`Erreur: ${error.message}`);
+    return [];
   }
 };
 
@@ -88,6 +94,7 @@ export const getProfileAnalysis = async (analysisId: string) => {
     };
   } catch (error) {
     console.error('Erreur lors de la récupération de l\'analyse:', error);
+    toast.error(`Erreur: ${error.message}`);
     throw error;
   }
 };
