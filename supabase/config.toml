@@ -23,7 +23,7 @@ verify_jwt = true
 
 [[functions]]
 name = "check_license_expiration"
-verify_jwt = true
+verify_jwt = false
 
 [[functions]]
 name = "create_video_analyses_table"

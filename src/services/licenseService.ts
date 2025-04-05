@@ -19,6 +19,12 @@ interface License {
  */
 export const checkUserHasLicense = async (userId: string): Promise<boolean> => {
   try {
+    // First trigger a license expiration check
+    await supabase.functions.invoke("check_license_expiration", {
+      method: "POST"
+    });
+    
+    // Then check for active license
     const { data, error } = await supabase
       .rpc('has_active_license', { user_id: userId });
     
@@ -45,7 +51,15 @@ export const getUserActiveLicense = async (userId: string): Promise<License | nu
       .maybeSingle();
     
     if (error) throw error;
-    return data;
+    
+    // Ensure status is of the correct type
+    if (data) {
+      return {
+        ...data,
+        status: data.status as 'active' | 'inactive' | 'expired'
+      };
+    }
+    return null;
   } catch (error) {
     console.error('Error getting user active license:', error);
     return null;

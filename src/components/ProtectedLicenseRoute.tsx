@@ -7,6 +7,7 @@ import { LicenseRequired } from "./LicenseRequired";
 import { toast } from "sonner";
 import { useCachedLicense } from "@/hooks/useCachedLicense";
 import { getGeneratedProjects } from "@/services/generatedProjectsService";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProtectedLicenseRouteProps {
   children: React.ReactNode;
@@ -16,31 +17,44 @@ export const ProtectedLicenseRoute: React.FC<ProtectedLicenseRouteProps> = ({ ch
   const location = useLocation();
   const { isAuthenticated, isLoading } = useAuth();
   const { hasLicense, isLoadingLicense } = useLicense();
-  const { verifyLicense, cachedHasLicense } = useCachedLicense();
+  const { verifyLicense, cachedHasLicense, clearLicenseCache } = useCachedLicense();
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [shouldShowContent, setShouldShowContent] = useState(false);
   const [hasCreatedFreeProject, setHasCreatedFreeProject] = useState(false);
 
+  // Function to check license expiration
+  const checkLicenseExpiration = async () => {
+    try {
+      console.log("Checking license expiration in ProtectedLicenseRoute");
+      await supabase.functions.invoke("check_license_expiration", {
+        method: "POST",
+      });
+    } catch (error) {
+      console.error("Error checking license expiration:", error);
+    }
+  };
+
   // Initial setup and cached license check
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      // First use the cached value to make a quick decision
-      if (cachedHasLicense) {
-        setShouldShowContent(true);
+      // First run the license expiration check
+      const init = async () => {
+        await checkLicenseExpiration();
+        
+        // First clear any potentially outdated cache
+        clearLicenseCache();
+        
+        // Verify license
+        await verifyLicense();
         setIsCheckingAccess(false);
-      } else {
-        // If no cache or no license in cache, verify from the server
-        const checkLicense = async () => {
-          await verifyLicense();
-          setIsCheckingAccess(false);
-        };
-        checkLicense();
-      }
+      };
+      
+      init();
     } else if (!isLoading) {
       // Not authenticated and not loading
       setIsCheckingAccess(false);
     }
-  }, [isAuthenticated, isLoading, cachedHasLicense, verifyLicense]);
+  }, [isAuthenticated, isLoading, verifyLicense]);
 
   // Update based on license status changes
   useEffect(() => {
@@ -67,7 +81,7 @@ export const ProtectedLicenseRoute: React.FC<ProtectedLicenseRouteProps> = ({ ch
   }, [isAuthenticated, location.pathname, hasLicense]);
 
   // Show loading state while checking access
-  if (isLoading || (isCheckingAccess && !cachedHasLicense)) {
+  if (isLoading || isCheckingAccess) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="flex flex-col items-center gap-2">
@@ -101,6 +115,6 @@ export const ProtectedLicenseRoute: React.FC<ProtectedLicenseRouteProps> = ({ ch
     return <LicenseRequired />;
   }
 
-  // User is authenticated and has a license (or we're showing cached content)
+  // User is authenticated and has a license
   return <>{children}</>;
 };

@@ -25,6 +25,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Function to check license expiration
+  const checkLicenseExpiration = async () => {
+    try {
+      console.log("Calling license expiration check");
+      const { error } = await supabase.functions.invoke("check_license_expiration", {
+        method: "POST",
+      });
+      
+      if (error) {
+        console.error("Error checking license expiration:", error);
+      } else {
+        console.log("License expiration check successful");
+      }
+    } catch (error) {
+      console.error("Error invoking license expiration function:", error);
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: authListener } = supabase.auth.onAuthStateChange((event, newSession) => {
@@ -37,6 +55,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Handle specific auth events
       if (event === 'SIGNED_IN') {
         toast.success("Connexion réussie");
+        
+        // Check license expiration after sign in
+        // Use setTimeout to avoid deadlocks in auth state change handler
+        setTimeout(() => {
+          checkLicenseExpiration();
+        }, 0);
       } else if (event === 'SIGNED_OUT') {
         toast.info("Déconnexion réussie");
       }
@@ -48,6 +72,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
+        
+        // If user is already signed in, check license expiration
+        if (currentSession?.user) {
+          await checkLicenseExpiration();
+        }
       } catch (error) {
         console.error("Error getting session:", error);
       } finally {

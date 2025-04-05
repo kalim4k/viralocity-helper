@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { createSupabaseClient } from "../_shared/supabase.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,29 +13,19 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   
-  // Get Supabase client
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-  );
-  
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-  
   try {
-    // Check that request has authorization header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    // Get Supabase client using the shared helper
+    const supabaseClient = await createSupabaseClient(req);
+    
+    // Only allow POST requests
+    if (req.method !== 'POST') {
       return new Response(
-        JSON.stringify({ error: 'Authorization header required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Method not allowed' }),
+        { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    console.log("Running check_license_expiration function");
     
     // Call the database function to check license expiration
     const { data, error } = await supabaseClient.rpc('check_license_expiration');
@@ -48,8 +38,15 @@ serve(async (req) => {
       );
     }
     
+    console.log("License expiration check completed");
+    
+    // Return success response
     return new Response(
-      JSON.stringify({ success: true, message: 'License expiration check completed' }),
+      JSON.stringify({ 
+        success: true, 
+        message: 'License expiration check completed',
+        timestamp: new Date().toISOString()
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

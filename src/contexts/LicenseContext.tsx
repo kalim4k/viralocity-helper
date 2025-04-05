@@ -33,6 +33,18 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
   const [licenseKey, setLicenseKey] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
+  // Function to trigger license expiration check
+  const triggerLicenseExpirationCheck = async () => {
+    try {
+      console.log("Triggering license expiration check from LicenseContext");
+      await supabase.functions.invoke("check_license_expiration", {
+        method: "POST",
+      });
+    } catch (error) {
+      console.error("Error triggering license expiration check:", error);
+    }
+  };
+
   // Function to check if user has an active license
   const checkLicenseStatus = async () => {
     if (!user) {
@@ -44,7 +56,10 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setIsLoadingLicense(true);
       
-      // Requête simplifiée pour vérifier la licence active de l'utilisateur
+      // First, trigger a license expiration check to ensure expired licenses are marked
+      await triggerLicenseExpirationCheck();
+      
+      // Then, query for active licenses
       const { data, error } = await supabase
         .from('licenses')
         .select('license_key, status, expires_at')

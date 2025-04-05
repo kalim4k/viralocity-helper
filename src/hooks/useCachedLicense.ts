@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useLicense } from '@/contexts/LicenseContext';
+import { supabase } from "@/integrations/supabase/client";
 
 // Cache expiry time in milliseconds (5 minutes)
 const CACHE_EXPIRY = 5 * 60 * 1000;
@@ -39,7 +40,14 @@ export const useCachedLicense = () => {
       console.error('Error parsing cached license data', error);
     }
     
+    // Clear expired or invalid cache
+    localStorage.removeItem('license_status');
     return null;
+  }, []);
+
+  const clearLicenseCache = useCallback(() => {
+    localStorage.removeItem('license_status');
+    setCachedLicenseStatus(null);
   }, []);
 
   const updateLicenseCache = useCallback((licenseStatus: boolean) => {
@@ -62,6 +70,11 @@ export const useCachedLicense = () => {
     console.log('Verifying license from server');
     setIsVerifying(true);
     try {
+      // Force a license expiration check before getting the status
+      await supabase.functions.invoke("check_license_expiration", {
+        method: "POST",
+      });
+      
       await refreshLicenseStatus();
       // After refresh, update the cache with the new status
       updateLicenseCache(hasLicense);
@@ -84,6 +97,7 @@ export const useCachedLicense = () => {
   return {
     verifyLicense,
     isVerifying,
-    cachedHasLicense: cachedLicenseStatus ?? hasLicense
+    cachedHasLicense: cachedLicenseStatus ?? hasLicense,
+    clearLicenseCache
   };
 };
