@@ -32,20 +32,42 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoadingLicense, setIsLoadingLicense] = useState(true);
   const [licenseKey, setLicenseKey] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
-
-  // Function to trigger license expiration check
+  const [isCheckingExpiration, setIsCheckingExpiration] = useState(false);
+  
+  // Utilisation d'un flag pour éviter les vérifications simultanées
+  const [lastCheckTime, setLastCheckTime] = useState<number>(0);
+  
+  // Fonction pour vérifier l'expiration des licences avec restriction de fréquence
   const triggerLicenseExpirationCheck = async () => {
+    // Éviter les appels multiples en peu de temps (minimum 5 secondes entre chaque appel)
+    const now = Date.now();
+    if (now - lastCheckTime < 5000) {
+      console.log("Vérification d'expiration de licence ignorée - trop récente");
+      return;
+    }
+    
+    if (isCheckingExpiration) {
+      console.log("Vérification d'expiration déjà en cours, ignorée");
+      return;
+    }
+    
     try {
-      console.log("Triggering license expiration check from LicenseContext");
+      setIsCheckingExpiration(true);
+      console.log("Vérification de l'expiration des licences depuis LicenseContext");
+      
       await supabase.functions.invoke("check_license_expiration", {
         method: "POST",
       });
+      
+      setLastCheckTime(Date.now());
     } catch (error) {
-      console.error("Error triggering license expiration check:", error);
+      console.error("Erreur lors de la vérification de l'expiration des licences:", error);
+    } finally {
+      setIsCheckingExpiration(false);
     }
   };
 
-  // Function to check if user has an active license
+  // Fonction pour vérifier si l'utilisateur a une licence active
   const checkLicenseStatus = async () => {
     if (!user) {
       setHasLicense(false);
@@ -56,10 +78,10 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setIsLoadingLicense(true);
       
-      // First, trigger a license expiration check to ensure expired licenses are marked
+      // D'abord, déclencher une vérification d'expiration des licences
       await triggerLicenseExpirationCheck();
       
-      // Then, query for active licenses
+      // Ensuite, interroger les licences actives
       const { data, error } = await supabase
         .from('licenses')
         .select('license_key, status, expires_at')
@@ -68,7 +90,7 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
         .maybeSingle();
 
       if (error) {
-        console.error('Error checking license status:', error);
+        console.error('Erreur lors de la vérification du statut de licence:', error);
         throw error;
       }
       
@@ -82,14 +104,14 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({
         setExpiresAt(null);
       }
     } catch (error) {
-      console.error('Error checking license status:', error);
+      console.error('Erreur lors de la vérification du statut de licence:', error);
       setHasLicense(false);
     } finally {
       setIsLoadingLicense(false);
     }
   };
 
-  // Activation de licence simplifiée et plus robuste
+  // Activation de licence
   const activateLicense = async (key: string): Promise<boolean> => {
     if (!user) {
       toast.error("Vous devez être connecté pour activer une licence");

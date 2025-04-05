@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Cache expiry time in milliseconds (5 minutes)
 const CACHE_EXPIRY = 5 * 60 * 1000;
+// Minimum time between license checks in milliseconds (10 seconds)
+const MIN_CHECK_INTERVAL = 10 * 1000;
 
 interface CachedLicenseState {
   hasLicense: boolean;
@@ -15,6 +17,7 @@ export const useCachedLicense = () => {
   const { refreshLicenseStatus, hasLicense, isLoadingLicense } = useLicense();
   const [isVerifying, setIsVerifying] = useState(false);
   const [cachedLicenseStatus, setCachedLicenseStatus] = useState<boolean | null>(null);
+  const [lastVerifyTime, setLastVerifyTime] = useState(0);
   
   // Initialize cached license status on component mount
   useEffect(() => {
@@ -60,6 +63,18 @@ export const useCachedLicense = () => {
   }, []);
 
   const verifyLicense = useCallback(async () => {
+    // Prevent multiple simultaneous verifications
+    if (isVerifying) {
+      return cachedLicenseStatus ?? hasLicense;
+    }
+    
+    // Limit frequency of verification
+    const now = Date.now();
+    if (now - lastVerifyTime < MIN_CHECK_INTERVAL) {
+      console.log('Skipping license verification - too recent');
+      return cachedLicenseStatus ?? hasLicense;
+    }
+
     // First check cache
     const cachedLicense = getLicenseFromCache();
     if (cachedLicense !== null) {
@@ -69,8 +84,11 @@ export const useCachedLicense = () => {
 
     console.log('Verifying license from server');
     setIsVerifying(true);
+    setLastVerifyTime(now);
+    
     try {
       // Force a license expiration check before getting the status
+      // Note: This now includes frequency limiting inside the function
       await supabase.functions.invoke("check_license_expiration", {
         method: "POST",
       });
@@ -85,7 +103,7 @@ export const useCachedLicense = () => {
     } finally {
       setIsVerifying(false);
     }
-  }, [refreshLicenseStatus, hasLicense, getLicenseFromCache, updateLicenseCache]);
+  }, [refreshLicenseStatus, hasLicense, getLicenseFromCache, updateLicenseCache, isVerifying, lastVerifyTime, cachedLicenseStatus]);
 
   // Update cache whenever license status changes
   useEffect(() => {

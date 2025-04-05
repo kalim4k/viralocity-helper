@@ -1,4 +1,5 @@
 
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSupabaseClient } from "../_shared/supabase.ts";
 
@@ -7,6 +8,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Variable pour limiter le taux d'appels
+let lastExecutionTime = 0;
+const RATE_LIMIT_MS = 3000; // 3 secondes entre les exécutions
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -14,6 +19,22 @@ serve(async (req) => {
   }
   
   try {
+    // Limiter le taux d'exécution
+    const now = Date.now();
+    if (now - lastExecutionTime < RATE_LIMIT_MS) {
+      console.log("Exécution ignorée - appels trop fréquents");
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'License check skipped due to rate limiting',
+          skipped: true,
+          timestamp: new Date().toISOString()
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    lastExecutionTime = now;
+    
     // Get Supabase client using the shared helper
     const supabaseClient = await createSupabaseClient(req);
     
