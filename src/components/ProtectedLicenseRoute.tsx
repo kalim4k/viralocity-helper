@@ -7,6 +7,7 @@ import { LicenseRequired } from "./LicenseRequired";
 import { toast } from "sonner";
 import { useCachedLicense } from "@/hooks/useCachedLicense";
 import { getGeneratedProjects } from "@/services/generatedProjectsService";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProtectedLicenseRouteProps {
   children: React.ReactNode;
@@ -20,47 +21,53 @@ export const ProtectedLicenseRoute: React.FC<ProtectedLicenseRouteProps> = ({ ch
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [shouldShowContent, setShouldShowContent] = useState(false);
   const [hasCreatedFreeProject, setHasCreatedFreeProject] = useState(false);
-  const [hasStartedVerification, setHasStartedVerification] = useState(false);
+
+  // Function to check license expiration
+  const checkLicenseExpiration = async () => {
+    try {
+      console.log("Checking license expiration in ProtectedLicenseRoute");
+      await supabase.functions.invoke("check_license_expiration", {
+        method: "POST",
+      });
+    } catch (error) {
+      console.error("Error checking license expiration:", error);
+    }
+  };
 
   // Initial setup and cached license check
   useEffect(() => {
-    // Prevent multiple initialization attempts
-    if (hasStartedVerification || !isAuthenticated || isLoading) {
-      return;
-    }
-    
-    const init = async () => {
-      setHasStartedVerification(true);
-      
-      try {
+    if (!isLoading && isAuthenticated) {
+      // First run the license expiration check
+      const init = async () => {
+        await checkLicenseExpiration();
+        
         // First clear any potentially outdated cache
         clearLicenseCache();
         
         // Verify license
         await verifyLicense();
-      } finally {
         setIsCheckingAccess(false);
-      }
-    };
-    
-    if (!isLoading && isAuthenticated) {
+      };
+      
       init();
     } else if (!isLoading) {
       // Not authenticated and not loading
       setIsCheckingAccess(false);
     }
-  }, [isAuthenticated, isLoading, verifyLicense, clearLicenseCache, hasStartedVerification]);
+  }, [isAuthenticated, isLoading, verifyLicense]);
 
   // Update based on license status changes
   useEffect(() => {
-    if (!isLoadingLicense && !isCheckingAccess) {
-      setShouldShowContent(hasLicense);
+    if (!isLoadingLicense) {
+      if (hasLicense) {
+        setShouldShowContent(true);
+      }
     }
-  }, [hasLicense, isLoadingLicense, isCheckingAccess]);
+  }, [hasLicense, isLoadingLicense]);
 
   // Check if user has created a free project (for Générateurs page)
   useEffect(() => {
-    if (isAuthenticated && location.pathname === '/generateurs' && !hasLicense && !isCheckingAccess) {
+    if (isAuthenticated && location.pathname === '/generateurs' && !hasLicense) {
       const checkFreeProject = async () => {
         try {
           const projects = await getGeneratedProjects();
@@ -71,7 +78,7 @@ export const ProtectedLicenseRoute: React.FC<ProtectedLicenseRouteProps> = ({ ch
       };
       checkFreeProject();
     }
-  }, [isAuthenticated, location.pathname, hasLicense, isCheckingAccess]);
+  }, [isAuthenticated, location.pathname, hasLicense]);
 
   // Show loading state while checking access
   if (isLoading || isCheckingAccess) {

@@ -24,33 +24,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastCheckTime, setLastCheckTime] = useState(0);
 
-  // Function to check license expiration with rate limiting
+  // Function to check license expiration
   const checkLicenseExpiration = async () => {
     try {
-      // Rate limit to once every 15 seconds
-      const now = Date.now();
-      if (now - lastCheckTime < 15000) {
-        console.log("Vérification d'expiration ignorée - trop récente");
-        return;
-      }
-      
-      console.log("Vérification de l'expiration des licences depuis AuthContext");
-      await supabase.functions.invoke("check_license_expiration", {
+      console.log("Calling license expiration check");
+      const { error } = await supabase.functions.invoke("check_license_expiration", {
         method: "POST",
       });
       
-      setLastCheckTime(now);
+      if (error) {
+        console.error("Error checking license expiration:", error);
+      } else {
+        console.log("License expiration check successful");
+      }
     } catch (error) {
-      console.error("Erreur lors de la vérification d'expiration des licences:", error);
+      console.error("Error invoking license expiration function:", error);
     }
   };
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: authListener } = supabase.auth.onAuthStateChange((event, newSession) => {
-      console.log(`État d'authentification changé: ${event}`);
+      console.log(`Auth state changed: ${event}`);
       
       // Only synchronous state updates here to avoid deadlocks
       setSession(newSession);
@@ -60,8 +56,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (event === 'SIGNED_IN') {
         toast.success("Connexion réussie");
         
-        // Check license expiration after sign in, with timeout to avoid race conditions
-        setTimeout(checkLicenseExpiration, 1000);
+        // Check license expiration after sign in
+        // Use setTimeout to avoid deadlocks in auth state change handler
+        setTimeout(() => {
+          checkLicenseExpiration();
+        }, 0);
       } else if (event === 'SIGNED_OUT') {
         toast.info("Déconnexion réussie");
       }
@@ -76,11 +75,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // If user is already signed in, check license expiration
         if (currentSession?.user) {
-          // Delay the check to ensure proper initialization
-          setTimeout(checkLicenseExpiration, 1000);
+          await checkLicenseExpiration();
         }
       } catch (error) {
-        console.error("Erreur lors de la récupération de la session:", error);
+        console.error("Error getting session:", error);
       } finally {
         setIsLoading(false);
       }
